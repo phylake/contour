@@ -19,6 +19,10 @@ required to rebuild the patches on top of the changed contour code.
 
 # Log
 
+## 1.1.0
+
+- prometheus mTLS support
+
 ## 1.0.0
 
 - sticky session support

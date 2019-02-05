@@ -70,6 +70,30 @@ type ConfigWriter struct {
 	// StatsdPort is port of the statsd endpoint
 	// Defaults to 9125.
 	StatsdPort int
+
+	// Default: false
+	PrometheusListenerEnabled bool
+
+	// Default: 0.0.0.0
+	PrometheusListenerAddress string
+
+	// Default: 39090
+	PrometheusListenerPort int
+
+	// Default: /etc/envoy/ca-cert.pem
+	PrometheusListenerCACertPath string
+
+	// Default: /etc/envoy/cert.pem
+	PrometheusListenerCertPath string
+
+	// Default: /etc/envoy/key.pem
+	PrometheusListenerKeyPath string
+
+	// Default: prometheus
+	PrometheusClusterAddress string
+
+	// Default: 9090
+	PrometheusClusterPort int
 }
 
 const yamlConfig = `dynamic_resources:
@@ -87,6 +111,15 @@ const yamlConfig = `dynamic_resources:
           cluster_name: contour
 static_resources:
   clusters:
+{{- if .PrometheusListenerEnabled }}
+  - name: prometheus_static
+    connect_timeout: { seconds: 1 }
+    type: STRICT_DNS
+    hosts:
+    - socket_address:
+        address: {{ if .PrometheusClusterAddress }}{{ .PrometheusClusterAddress }}{{ else }}prometheus{{ end }}
+        port_value: {{ if .PrometheusClusterPort }}{{ .PrometheusClusterPort }}{{ else }}9090{{ end }}
+{{- end }}
   - name: contour
     connect_timeout: { seconds: 5 }
     type: STRICT_DNS
@@ -118,6 +151,41 @@ static_resources:
           address: 127.0.0.1
           port_value: {{ if .AdminPort }}{{ .AdminPort }}{{ else }}9001{{ end }}
   listeners:
+{{- if .PrometheusListenerEnabled }}
+    - address:
+        socket_address:
+          protocol: TCP
+          address: {{ if .PrometheusListenerAddress }}{{ .PrometheusListenerAddress }}{{ else }}0.0.0.0{{ end }}
+          port_value: {{ if .PrometheusListenerPort }}{{ .PrometheusListenerPort }}{{ else }}39090{{ end }}
+      filter_chains:
+      - tls_context:
+          require_client_certificate: true
+          common_tls_context:
+            tls_certificates:
+            - private_key:
+                filename: {{ if .PrometheusListenerKeyPath }}{{ .PrometheusListenerKeyPath }}{{ else }}/etc/envoy/key.pem{{ end }}
+              certificate_chain:
+                filename: {{ if .PrometheusListenerCertPath }}{{ .PrometheusListenerCertPath }}{{ else }}/etc/envoy/cert.pem{{ end }}
+            validation_context:
+              trusted_ca:
+                filename: {{ if .PrometheusListenerCACertPath }}{{ .PrometheusListenerCACertPath }}{{ else }}/etc/envoy/ca-cert.pem{{ end }}
+        filters:
+        - name: envoy.http_connection_manager
+          config:
+            http_filters:
+            - name: envoy.router
+            stat_prefix: prometheus_static
+            codec_type: AUTO
+            route_config:
+              name: local_route
+              virtual_hosts:
+              - name: default
+                domains: ["*"]
+                routes:
+                - match: { prefix: / }
+                  route:
+                    cluster: prometheus_static
+{{- end }}
     - address:
         socket_address:
           protocol: TCP

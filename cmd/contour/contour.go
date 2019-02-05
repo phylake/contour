@@ -58,6 +58,15 @@ func main() {
 	bootstrap.Flag("statsd-address", "statsd address").StringVar(&config.StatsdAddress)
 	bootstrap.Flag("statsd-port", "statsd port").IntVar(&config.StatsdPort)
 
+	bootstrap.Flag("prometheus-listener-enabled", "prometheus listener enabled").BoolVar(&config.PrometheusListenerEnabled)
+	bootstrap.Flag("prometheus-listener-address", "prometheus listener address").StringVar(&config.PrometheusListenerAddress)
+	bootstrap.Flag("prometheus-listener-port", "prometheus listener port").IntVar(&config.PrometheusListenerPort)
+	bootstrap.Flag("prometheus-listener-ca-cert-path", "prometheus listener ca cert path").StringVar(&config.PrometheusListenerCACertPath)
+	bootstrap.Flag("prometheus-listener-cert-path", "prometheus listener cert path").StringVar(&config.PrometheusListenerCertPath)
+	bootstrap.Flag("prometheus-listener-key-path", "prometheus listener key path").StringVar(&config.PrometheusListenerKeyPath)
+	bootstrap.Flag("prometheus-cluster-address", "prometheus cluster address").StringVar(&config.PrometheusClusterAddress)
+	bootstrap.Flag("prometheus-cluster-port", "prometheus cluster port").IntVar(&config.PrometheusClusterPort)
+
 	cli := app.Command("cli", "A CLI client for the Heptio Contour Kubernetes ingress controller.")
 	var client Client
 	cli.Flag("contour", "contour host:port.").Default("127.0.0.1:8001").StringVar(&client.ContourAddr)
