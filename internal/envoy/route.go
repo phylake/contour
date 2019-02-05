@@ -34,6 +34,48 @@ func RouteRoute(r *dag.Route, services []*dag.HTTPService) *route.Route_Route {
 		PrefixRewrite: r.PrefixRewrite,
 	}
 
+	if len(r.HashPolicy) > 0 {
+		ra.HashPolicy = make([]*route.RouteAction_HashPolicy, len(r.HashPolicy))
+	}
+
+	for i, policy := range r.HashPolicy {
+		if policy.Header != nil {
+			ra.HashPolicy[i] = &route.RouteAction_HashPolicy{
+				PolicySpecifier: &route.RouteAction_HashPolicy_Header_{
+					Header: &route.RouteAction_HashPolicy_Header{
+						HeaderName: policy.Header.HeaderName,
+					},
+				},
+			}
+		} else if policy.Cookie != nil {
+			policySpecifier := &route.RouteAction_HashPolicy_Cookie_{
+				Cookie: &route.RouteAction_HashPolicy_Cookie{
+					Name: policy.Cookie.Name,
+					Path: policy.Cookie.Path,
+				},
+			}
+			if policy.Cookie.Ttl != nil {
+				policySpecifier.Cookie.Ttl = &policy.Cookie.Ttl.Duration
+			}
+
+			ra.HashPolicy[i] = &route.RouteAction_HashPolicy{
+				PolicySpecifier: policySpecifier,
+			}
+		} else if policy.ConnectionProperties != nil {
+			ra.HashPolicy[i] = &route.RouteAction_HashPolicy{
+				PolicySpecifier: &route.RouteAction_HashPolicy_ConnectionProperties_{
+					ConnectionProperties: &route.RouteAction_HashPolicy_ConnectionProperties{
+						SourceIp: policy.ConnectionProperties.SourceIp,
+					},
+				},
+			}
+		}
+
+		if ra.HashPolicy[i] != nil {
+			ra.HashPolicy[i].Terminal = policy.Terminal
+		}
+	}
+
 	switch len(services) {
 	case 1:
 		ra.ClusterSpecifier = &route.RouteAction_Cluster{
