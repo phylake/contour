@@ -58,7 +58,7 @@ func main() {
 	bootstrap.Flag("statsd-address", "statsd address").StringVar(&config.StatsdAddress)
 	bootstrap.Flag("statsd-port", "statsd port").IntVar(&config.StatsdPort)
 
-	bootstrap.Flag("prometheus-listener-enabled", "prometheus listener enabled").BoolVar(&config.PrometheusListenerEnabled)
+	bootstrap.Flag("prometheus-listener", "prometheus listener enabled").BoolVar(&config.PrometheusListenerEnabled)
 	bootstrap.Flag("prometheus-listener-address", "prometheus listener address").StringVar(&config.PrometheusListenerAddress)
 	bootstrap.Flag("prometheus-listener-port", "prometheus listener port").IntVar(&config.PrometheusListenerPort)
 	bootstrap.Flag("prometheus-listener-ca-cert-path", "prometheus listener ca cert path").StringVar(&config.PrometheusListenerCACertPath)
@@ -66,6 +66,13 @@ func main() {
 	bootstrap.Flag("prometheus-listener-key-path", "prometheus listener key path").StringVar(&config.PrometheusListenerKeyPath)
 	bootstrap.Flag("prometheus-cluster-address", "prometheus cluster address").StringVar(&config.PrometheusClusterAddress)
 	bootstrap.Flag("prometheus-cluster-port", "prometheus cluster port").IntVar(&config.PrometheusClusterPort)
+
+	bootstrap.Flag("buffer-filter", "turn on the envoy buffer filter").BoolVar(&config.BufferFilterEnabled)
+	bootstrap.Flag("buffer-filter-max-request-bytes", "must fit in a uint32").Uint32Var(&config.BufferFilterMaxRequestBytes)
+	bootstrap.Flag("buffer-filter-max-request-time", "seconds").IntVar(&config.BufferFilterMaxRequestTime)
+
+	bootstrap.Flag("header-size-filter", "turn on the header size filter").BoolVar(&config.HeaderSizeFilterEnabled)
+	bootstrap.Flag("header-size-filter-max-bytes", "can't exceed 63KiB").Uint32Var(&config.HeaderSizeFilterMaxBytes)
 
 	cli := app.Command("cli", "A CLI client for the Heptio Contour Kubernetes ingress controller.")
 	var client Client

@@ -14,15 +14,14 @@ A stands for Adobe's changes
 v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 ```
 
-Note: a contour upgrade will not show up in this changelog even if changes were
-required to rebuild the patches on top of the changed contour code.
-
 # Log
 
-## 1.1.0
+## v0.9.0-1.1.0-adobe
 
-- prometheus mTLS support
+- bootstrap: configurable envoy.filters.http.header_size filter
+- bootstrap: configurable envoy.buffer filter
+- bootstrap: configurable prometheus mTLS support
 
-## 1.0.0
+## v0.9.0-1.0.0-adobe
 
-- sticky session support
+- CRD: sticky sessions support

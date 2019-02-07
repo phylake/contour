@@ -94,6 +94,25 @@ type ConfigWriter struct {
 
 	// Default: 9090
 	PrometheusClusterPort int
+
+  // Default: false
+  BufferFilterEnabled bool
+
+  // Default: 2^32-1
+  // Envoy's buffer limit is a uint32 and we expect per-route config to override/disable it
+  // https://github.com/envoyproxy/envoy/blob/v1.8.0/include/envoy/http/filter.h#L287-L292
+  BufferFilterMaxRequestBytes uint32
+
+  // Default: 60s
+  // Matches nginx's proxy_read_timeout and proxy_send_timeout
+  BufferFilterMaxRequestTime int
+
+  // Default: false
+  HeaderSizeFilterEnabled bool
+
+  // Default: 63KiB
+  // https://github.com/envoyproxy/envoy/pull/5654/files#diff-62f92f4fe8350a66ff9e3ca9e5299228R140
+  HeaderSizeFilterMaxBytes uint32
 }
 
 const yamlConfig = `dynamic_resources:
@@ -208,6 +227,18 @@ static_resources:
                           route:
                             cluster: service_stats
                 http_filters:
+{{- if .HeaderSizeFilterEnabled }}
+                  - name: envoy.filters.http.header_size
+                    config:
+                      max_bytes: {{ if le .HeaderSizeFilterMaxBytes 66060288 }}{{ .HeaderSizeFilterMaxBytes }}{{ else }}66060288{{ end }}
+{{- end }}
+{{- if .BufferFilterEnabled }}
+                  - name: envoy.buffer
+                    config:
+                      max_request_bytes: {{ if .BufferFilterMaxRequestBytes }}{{ .BufferFilterMaxRequestBytes }}{{ else }}4294967295{{ end }}
+                      max_request_time:
+                        seconds: {{ if .BufferFilterMaxRequestTime }}{{ .BufferFilterMaxRequestTime }}{{ else }}60{{ end }}
+{{- end }}
                   - name: envoy.health_check
                     config:
                       pass_through_mode: false
