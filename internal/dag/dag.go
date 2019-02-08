@@ -83,6 +83,8 @@ type Route struct {
 	PrefixRewrite string
 
 	HashPolicy []ingressroutev1.HashPolicy
+
+	PerFilterConfig map[string]interface{}
 }
 
 func (r *Route) addHTTPService(s *HTTPService) {

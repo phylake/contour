@@ -95,24 +95,24 @@ type ConfigWriter struct {
 	// Default: 9090
 	PrometheusClusterPort int
 
-  // Default: false
-  BufferFilterEnabled bool
+	// Default: false
+	BufferFilterEnabled bool
 
-  // Default: 2^32-1
-  // Envoy's buffer limit is a uint32 and we expect per-route config to override/disable it
-  // https://github.com/envoyproxy/envoy/blob/v1.8.0/include/envoy/http/filter.h#L287-L292
-  BufferFilterMaxRequestBytes uint32
+	// Default: 2^32-1
+	// Envoy's buffer limit is a uint32 and we expect per-route config to override/disable it
+	// https://github.com/envoyproxy/envoy/blob/v1.8.0/include/envoy/http/filter.h#L287-L292
+	BufferFilterMaxRequestBytes uint32
 
-  // Default: 60s
-  // Matches nginx's proxy_read_timeout and proxy_send_timeout
-  BufferFilterMaxRequestTime int
+	// Default: 60s
+	// Matches nginx's proxy_read_timeout and proxy_send_timeout
+	BufferFilterMaxRequestTime int
 
-  // Default: false
-  HeaderSizeFilterEnabled bool
+	// Default: false
+	HeaderSizeFilterEnabled bool
 
-  // Default: 63KiB
-  // https://github.com/envoyproxy/envoy/pull/5654/files#diff-62f92f4fe8350a66ff9e3ca9e5299228R140
-  HeaderSizeFilterMaxBytes uint32
+	// Default: 63KiB
+	// https://github.com/envoyproxy/envoy/pull/5654/files#diff-62f92f4fe8350a66ff9e3ca9e5299228R140
+	HeaderSizeFilterMaxBytes uint32
 }
 
 const yamlConfig = `dynamic_resources:

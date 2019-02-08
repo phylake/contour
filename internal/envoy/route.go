@@ -222,3 +222,94 @@ func bv(val bool) *types.BoolValue {
 }
 
 func duration(d time.Duration) *time.Duration { return &d }
+
+func PerFilterConfig(r *dag.Route) (conf map[string]*types.Struct) {
+	if len(r.PerFilterConfig) == 0 {
+		return
+	}
+
+	conf = make(map[string]*types.Struct)
+	for k, v := range r.PerFilterConfig {
+		s := new(types.Struct)
+		conf[k] = s
+
+		recurseIface(s, v)
+	}
+	return
+}
+
+// recurseIface is *types.Value producing function that recurses into nested
+// structures
+func recurseIface(s *types.Struct, iface interface{}) (ret *types.Value) {
+
+	switch ifaceVal := iface.(type) {
+	case int:
+		ret = &types.Value{
+			Kind: &types.Value_NumberValue{float64(ifaceVal)},
+		}
+	case int32:
+		ret = &types.Value{
+			Kind: &types.Value_NumberValue{float64(ifaceVal)},
+		}
+	case int64:
+		ret = &types.Value{
+			Kind: &types.Value_NumberValue{float64(ifaceVal)},
+		}
+	case uint:
+		ret = &types.Value{
+			Kind: &types.Value_NumberValue{float64(ifaceVal)},
+		}
+	case uint32:
+		ret = &types.Value{
+			Kind: &types.Value_NumberValue{float64(ifaceVal)},
+		}
+	case uint64:
+		ret = &types.Value{
+			Kind: &types.Value_NumberValue{float64(ifaceVal)},
+		}
+	case float32:
+		ret = &types.Value{
+			Kind: &types.Value_NumberValue{float64(ifaceVal)},
+		}
+	case float64:
+		ret = &types.Value{
+			Kind: &types.Value_NumberValue{ifaceVal},
+		}
+	case string:
+		ret = &types.Value{
+			Kind: &types.Value_StringValue{ifaceVal},
+		}
+	case bool:
+		ret = &types.Value{
+			Kind: &types.Value_BoolValue{ifaceVal},
+		}
+	case map[string]interface{}:
+		if s == nil { // will only be true on the initial call
+			s = new(types.Struct)
+		}
+		if s.Fields == nil {
+			s.Fields = make(map[string]*types.Value)
+		}
+
+		for k, v := range ifaceVal {
+			s.Fields[k] = recurseIface(nil, v)
+		}
+
+		ret = &types.Value{
+			Kind: &types.Value_StructValue{s},
+		}
+	case []interface{}:
+		lv := new(types.ListValue)
+		for _, v := range ifaceVal {
+			lv.Values = append(lv.Values, recurseIface(nil, v))
+		}
+		ret = &types.Value{
+			Kind: &types.Value_ListValue{lv},
+		}
+	default:
+		ret = &types.Value{
+			Kind: &types.Value_NullValue{},
+		}
+	}
+	return
+}

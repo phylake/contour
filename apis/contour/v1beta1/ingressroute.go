@@ -125,6 +125,8 @@ type Route struct {
 	PrefixRewrite string `json:"prefixRewrite,omitempty"`
 
 	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
+
+	PerFilterConfig map[string]interface{} `json:"perFilterConfig,omitempty"`
 }
 
 // TCPProxy contains the set of services to proxy TCP connections.

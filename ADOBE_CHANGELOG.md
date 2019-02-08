@@ -18,6 +18,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 ## v0.9.0-1.1.0-adobe
 
+- CRD: per_filter_config
 - bootstrap: configurable envoy.filters.http.header_size filter
 - bootstrap: configurable envoy.buffer filter
 - bootstrap: configurable prometheus mTLS support
