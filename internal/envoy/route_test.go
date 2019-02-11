@@ -443,7 +443,7 @@ func TestPerFilterConfig(t *testing.T) {
 				"float": 9.0,
 				"bool":  true,
 			},
-			"list": []string{
+			"list": []interface{}{
 				"string",
 			},
 		},
@@ -469,9 +469,11 @@ func TestPerFilterConfig(t *testing.T) {
 				},
 				"list": {
 					Kind: &types.Value_ListValue{
-						Values: []*Value{
-							{
-								Kind: &types.Value_StringValue{"string"},
+						&types.ListValue{
+							Values: []*types.Value{
+								{
+									Kind: &types.Value_StringValue{"string"},
+								},
 							},
 						},
 					},
