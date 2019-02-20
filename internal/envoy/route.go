@@ -30,7 +30,8 @@ func RouteRoute(r *dag.Route, services []*dag.HTTPService) *route.Route_Route {
 	ra := route.RouteAction{
 		UseWebsocket:  bv(r.Websocket),
 		RetryPolicy:   retryPolicy(r),
-		Timeout:       timeout(r),
+		Timeout:       r.Timeout,
+		IdleTimeout:   r.IdleTimeout,
 		PrefixRewrite: r.PrefixRewrite,
 	}
 
@@ -91,20 +92,6 @@ func RouteRoute(r *dag.Route, services []*dag.HTTPService) *route.Route_Route {
 	}
 	return &route.Route_Route{
 		Route: &ra,
-	}
-}
-
-func timeout(r *dag.Route) *time.Duration {
-	switch r.Timeout {
-	case 0:
-		// no timeout specified
-		return nil
-	case -1:
-		// infinite timeout, set timeout value to a pointer to zero which tells
-		// envoy "infinite timeout"
-		return duration(0)
-	default:
-		return duration(r.Timeout)
 	}
 }
 

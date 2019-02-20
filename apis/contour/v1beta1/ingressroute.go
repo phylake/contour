@@ -127,6 +127,10 @@ type Route struct {
 	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
 
 	PerFilterConfig map[string]interface{} `json:"perFilterConfig,omitempty"`
+
+	Timeout *Duration `json:"timeout,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 }
 
 // TCPProxy contains the set of services to proxy TCP connections.

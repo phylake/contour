@@ -197,46 +197,46 @@ func TestRouteRoute(t *testing.T) {
 				},
 			},
 		},
-		"timeout 90s": {
-			route: &dag.Route{
-				Prefix:  "/",
-				Timeout: 90 * time.Second,
-			},
-			services: []*dag.HTTPService{{
-				TCPService: service(s1),
-			}},
-			want: &route.Route_Route{
-				Route: &route.RouteAction{
-					ClusterSpecifier: &route.RouteAction_Cluster{
-						Cluster: "default/kuard/8080/da39a3ee5e",
-					},
-					RequestHeadersToAdd: headers(
-						appendHeader("x-request-start", "t=%START_TIME(%s.%3f)%"),
-					),
-					Timeout: duration(90 * time.Second),
-				},
-			},
-		},
-		"timeout infinity": {
-			route: &dag.Route{
-				Prefix:  "/",
-				Timeout: -1,
-			},
-			services: []*dag.HTTPService{{
-				TCPService: service(s1),
-			}},
-			want: &route.Route_Route{
-				Route: &route.RouteAction{
-					ClusterSpecifier: &route.RouteAction_Cluster{
-						Cluster: "default/kuard/8080/da39a3ee5e",
-					},
-					RequestHeadersToAdd: headers(
-						appendHeader("x-request-start", "t=%START_TIME(%s.%3f)%"),
-					),
-					Timeout: duration(0),
-				},
-			},
-		},
+		// "timeout 90s": {
+		// 	route: &dag.Route{
+		// 		Prefix:  "/",
+		// 		Timeout: 90 * time.Second,
+		// 	},
+		// 	services: []*dag.HTTPService{{
+		// 		TCPService: service(s1),
+		// 	}},
+		// 	want: &route.Route_Route{
+		// 		Route: &route.RouteAction{
+		// 			ClusterSpecifier: &route.RouteAction_Cluster{
+		// 				Cluster: "default/kuard/8080/da39a3ee5e",
+		// 			},
+		// 			RequestHeadersToAdd: headers(
+		// 				appendHeader("x-request-start", "t=%START_TIME(%s.%3f)%"),
+		// 			),
+		// 			Timeout: duration(90 * time.Second),
+		// 		},
+		// 	},
+		// },
+		// "timeout infinity": {
+		// 	route: &dag.Route{
+		// 		Prefix:  "/",
+		// 		Timeout: -1,
+		// 	},
+		// 	services: []*dag.HTTPService{{
+		// 		TCPService: service(s1),
+		// 	}},
+		// 	want: &route.Route_Route{
+		// 		Route: &route.RouteAction{
+		// 			ClusterSpecifier: &route.RouteAction_Cluster{
+		// 				Cluster: "default/kuard/8080/da39a3ee5e",
+		// 			},
+		// 			RequestHeadersToAdd: headers(
+		// 				appendHeader("x-request-start", "t=%START_TIME(%s.%3f)%"),
+		// 			),
+		// 			Timeout: duration(0),
+		// 		},
+		// 	},
+		// },
 	}
 
 	for name, tc := range tests {

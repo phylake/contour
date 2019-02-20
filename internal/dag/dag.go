@@ -61,11 +61,7 @@ type Route struct {
 	// TODO(dfc) this should go on the service
 	Websocket bool
 
-	// A timeout applied to requests on this route.
-	// A timeout of zero implies "use envoy's default"
-	// A timeout of -1 represents "infinity"
-	// TODO(dfc) should this move to service?
-	Timeout time.Duration
+	Timeout *time.Duration
 
 	// RetryOn specifies the conditions under which retry takes place.
 	// If empty, retries will not be performed.
@@ -85,6 +81,8 @@ type Route struct {
 	HashPolicy []ingressroutev1.HashPolicy
 
 	PerFilterConfig map[string]interface{}
+
+	IdleTimeout *time.Duration
 }
 
 func (r *Route) addHTTPService(s *HTTPService) {

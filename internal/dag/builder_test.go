@@ -357,75 +357,75 @@ func TestDAGInsert(t *testing.T) {
 	}
 
 	// i12a has an invalid timeout
-	i12a := &v1beta1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "timeout",
-			Namespace: "default",
-			Annotations: map[string]string{
-				"contour.heptio.com/request-timeout": "peanut",
-			},
-		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{{
-				IngressRuleValue: v1beta1.IngressRuleValue{
-					HTTP: &v1beta1.HTTPIngressRuleValue{
-						Paths: []v1beta1.HTTPIngressPath{{
-							Path: "/",
-							Backend: v1beta1.IngressBackend{
-								ServiceName: "kuard",
-								ServicePort: intstr.FromString("http"),
-							},
-						}},
-					},
-				},
-			}},
-		},
-	}
+	// i12a := &v1beta1.Ingress{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      "timeout",
+	// 		Namespace: "default",
+	// 		Annotations: map[string]string{
+	// 			"contour.heptio.com/request-timeout": "peanut",
+	// 		},
+	// 	},
+	// 	Spec: v1beta1.IngressSpec{
+	// 		Rules: []v1beta1.IngressRule{{
+	// 			IngressRuleValue: v1beta1.IngressRuleValue{
+	// 				HTTP: &v1beta1.HTTPIngressRuleValue{
+	// 					Paths: []v1beta1.HTTPIngressPath{{
+	// 						Path: "/",
+	// 						Backend: v1beta1.IngressBackend{
+	// 							ServiceName: "kuard",
+	// 							ServicePort: intstr.FromString("http"),
+	// 						},
+	// 					}},
+	// 				},
+	// 			},
+	// 		}},
+	// 	},
+	// }
 
 	// i12b has a reasonable timeout
-	i12b := &v1beta1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "timeout",
-			Namespace: "default",
-			Annotations: map[string]string{
-				"contour.heptio.com/request-timeout": "1m30s", // 90 seconds y'all
-			},
-		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{{
-				IngressRuleValue: v1beta1.IngressRuleValue{
-					HTTP: &v1beta1.HTTPIngressRuleValue{
-						Paths: []v1beta1.HTTPIngressPath{{
-							Path: "/",
-							Backend: v1beta1.IngressBackend{
-								ServiceName: "kuard",
-								ServicePort: intstr.FromString("http"),
-							},
-						}},
-					},
-				},
-			}},
-		},
-	}
+	// i12b := &v1beta1.Ingress{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      "timeout",
+	// 		Namespace: "default",
+	// 		Annotations: map[string]string{
+	// 			"contour.heptio.com/request-timeout": "1m30s", // 90 seconds y'all
+	// 		},
+	// 	},
+	// 	Spec: v1beta1.IngressSpec{
+	// 		Rules: []v1beta1.IngressRule{{
+	// 			IngressRuleValue: v1beta1.IngressRuleValue{
+	// 				HTTP: &v1beta1.HTTPIngressRuleValue{
+	// 					Paths: []v1beta1.HTTPIngressPath{{
+	// 						Path: "/",
+	// 						Backend: v1beta1.IngressBackend{
+	// 							ServiceName: "kuard",
+	// 							ServicePort: intstr.FromString("http"),
+	// 						},
+	// 					}},
+	// 				},
+	// 			},
+	// 		}},
+	// 	},
+	// }
 
 	// i12c has an unreasonable timeout
-	i12c := &v1beta1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "timeout",
-			Namespace: "default",
-			Annotations: map[string]string{
-				"contour.heptio.com/request-timeout": "infinite",
-			},
-		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{{
-				IngressRuleValue: v1beta1.IngressRuleValue{HTTP: &v1beta1.HTTPIngressRuleValue{
-					Paths: []v1beta1.HTTPIngressPath{{Path: "/",
-						Backend: v1beta1.IngressBackend{ServiceName: "kuard",
-							ServicePort: intstr.FromString("http")},
-					}}},
-				}}}},
-	}
+	// i12c := &v1beta1.Ingress{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      "timeout",
+	// 		Namespace: "default",
+	// 		Annotations: map[string]string{
+	// 			"contour.heptio.com/request-timeout": "infinite",
+	// 		},
+	// 	},
+	// 	Spec: v1beta1.IngressSpec{
+	// 		Rules: []v1beta1.IngressRule{{
+	// 			IngressRuleValue: v1beta1.IngressRuleValue{HTTP: &v1beta1.HTTPIngressRuleValue{
+	// 				Paths: []v1beta1.HTTPIngressPath{{Path: "/",
+	// 					Backend: v1beta1.IngressBackend{ServiceName: "kuard",
+	// 						ServicePort: intstr.FromString("http")},
+	// 				}}},
+	// 			}}}},
+	// }
 
 	// i13 a and b are a pair of ingresses for the same vhost
 	// they represent a tricky way over 'overlaying' routes from one
@@ -2224,72 +2224,72 @@ func TestDAGInsert(t *testing.T) {
 				},
 			},
 		},
-		"insert ingress w/ invalid timeout annotation": {
-			objs: []interface{}{
-				i12a,
-				s1,
-			},
-			want: []Vertex{
-				&VirtualHost{
-					Host: "*",
-					Port: 80,
-					routes: routemap(
-						&Route{
-							Prefix: "/",
-							object: i12a,
-							httpServices: servicemap(
-								httpService(s1),
-							),
-							Timeout: -1, // invalid timeout equals infinity ¯\_(ツ)_/¯.
-						},
-					),
-				},
-			},
-		},
-		"insert ingress w/ valid timeout annotation": {
-			objs: []interface{}{
-				i12b,
-				s1,
-			},
-			want: []Vertex{
-				&VirtualHost{
-					Host: "*",
-					Port: 80,
-					routes: routemap(
-						&Route{
-							Prefix: "/",
-							object: i12b,
-							httpServices: servicemap(
-								httpService(s1),
-							),
-							Timeout: 90 * time.Second,
-						},
-					),
-				},
-			},
-		},
-		"insert ingress w/ infinite timeout annotation": {
-			objs: []interface{}{
-				i12c,
-				s1,
-			},
-			want: []Vertex{
-				&VirtualHost{
-					Host: "*",
-					Port: 80,
-					routes: routemap(
-						&Route{
-							Prefix: "/",
-							object: i12c,
-							httpServices: servicemap(
-								httpService(s1),
-							),
-							Timeout: -1,
-						},
-					),
-				},
-			},
-		},
+		// "insert ingress w/ invalid timeout annotation": {
+		// 	objs: []interface{}{
+		// 		i12a,
+		// 		s1,
+		// 	},
+		// 	want: []Vertex{
+		// 		&VirtualHost{
+		// 			Host: "*",
+		// 			Port: 80,
+		// 			routes: routemap(
+		// 				&Route{
+		// 					Prefix: "/",
+		// 					object: i12a,
+		// 					httpServices: servicemap(
+		// 						httpService(s1),
+		// 					),
+		// 					Timeout: -1, // invalid timeout equals infinity ¯\_(ツ)_/¯.
+		// 				},
+		// 			),
+		// 		},
+		// 	},
+		// },
+		// "insert ingress w/ valid timeout annotation": {
+		// 	objs: []interface{}{
+		// 		i12b,
+		// 		s1,
+		// 	},
+		// 	want: []Vertex{
+		// 		&VirtualHost{
+		// 			Host: "*",
+		// 			Port: 80,
+		// 			routes: routemap(
+		// 				&Route{
+		// 					Prefix: "/",
+		// 					object: i12b,
+		// 					httpServices: servicemap(
+		// 						httpService(s1),
+		// 					),
+		// 					Timeout: 90 * time.Second,
+		// 				},
+		// 			),
+		// 		},
+		// 	},
+		// },
+		// "insert ingress w/ infinite timeout annotation": {
+		// 	objs: []interface{}{
+		// 		i12c,
+		// 		s1,
+		// 	},
+		// 	want: []Vertex{
+		// 		&VirtualHost{
+		// 			Host: "*",
+		// 			Port: 80,
+		// 			routes: routemap(
+		// 				&Route{
+		// 					Prefix: "/",
+		// 					object: i12c,
+		// 					httpServices: servicemap(
+		// 						httpService(s1),
+		// 					),
+		// 					Timeout: -1,
+		// 				},
+		// 			),
+		// 		},
+		// 	},
+		// },
 		"insert root ingress route and delegate ingress route": {
 			objs: []interface{}{
 				ir5, s4, ir4, s5, ir3,
