@@ -581,13 +581,40 @@ spec:
         header:
           headerName: "X-Some-Header-To-Hash-On"
         # see the envoy docs for how to configure this
-        # https://www.envoyproxy.io/docs/envoy/v1.9.0/api-v2/api/v2/route/route.proto#envoy-api-msg-route-routeaction-hashpolicy
+        # https://www.envoyproxy.io/docs/envoy/v1.8.0/api-v2/api/v2/route/route.proto#envoy-api-msg-route-routeaction-hashpolicy
         terminal: true
       services:
         - name: app
           port: 80
           # RingHash or Maglev
           strategy: RingHash
+```
+
+#### Timeout support
+
+Envoy's [`timeout`](https://www.envoyproxy.io/docs/envoy/v1.8.0/api-v2/api/v2/route/route.proto#envoy-api-field-route-routeaction-timeout)
+and [`idle_timeout`](https://www.envoyproxy.io/docs/envoy/v1.8.0/api-v2/api/v2/route/route.proto#envoy-api-field-route-routeaction-idle-timeout)
+are supported.
+
+Go's [ParseDuration](https://golang.org/pkg/time/#ParseDuration) is used. If an
+integer is provided then it's treated as [nanoseconds](https://golang.org/pkg/time/#Duration).
+
+```yaml
+apiVersion: contour.heptio.com/v1beta1
+kind: IngressRoute
+metadata:
+  name: app
+  namespace: default
+spec:
+  virtualhost:
+    fqdn: app.example.com
+  routes:
+    - match: /
+      timeout: 60s
+      idleTimeout: 5m
+      services:
+        - name: app
+          port: 80
 ```
 
 #### Permit Insecure
