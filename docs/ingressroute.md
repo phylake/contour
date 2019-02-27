@@ -617,6 +617,37 @@ spec:
           port: 80
 ```
 
+#### Per filter config
+
+Envoy's [`per_filter_config`](https://www.envoyproxy.io/docs/envoy/v1.8.0/api-v2/api/v2/route/route.proto#envoy-api-field-route-virtualhost-per-filter-config)
+is supported.
+
+Here's an example that configures the [Buffer](https://www.envoyproxy.io/docs/envoy/v1.8.0/api-v2/config/filter/http/buffer/v2/buffer.proto)
+filter.
+
+```yaml
+apiVersion: contour.heptio.com/v1beta1
+kind: IngressRoute
+metadata:
+  name: app
+  namespace: default
+spec:
+  virtualhost:
+    fqdn: app.example.com
+  routes:
+    - match: /
+      perFilterConfig:
+        # the name of the filter
+        envoy.buffer:
+          # per route filter config is often different than global filter config
+          buffer:
+            max_request_bytes: 1000000 # 1MB
+            max_request_time: 10s
+      services:
+        - name: app
+          port: 80
+```
+
 #### Permit Insecure
 
 IngressRoutes support allowing HTTP alongside HTTPS. This way, the path responds to insecure requests over HTTP which are normally not permitted when a `virtualhost.tls` block is present.
