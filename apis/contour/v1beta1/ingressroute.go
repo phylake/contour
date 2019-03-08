@@ -14,8 +14,38 @@
 package v1beta1
 
 import (
+	"encoding/json"
+	"errors"
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type Duration struct {
+	time.Duration
+}
+
+func (recv Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(recv.String())
+}
+
+func (recv *Duration) UnmarshalJSON(bs []byte) (err error) {
+	var iface interface{}
+
+	if err = json.Unmarshal(bs, &iface); err != nil {
+		return
+	}
+
+	switch value := iface.(type) {
+	case float64:
+		recv.Duration = time.Duration(value)
+	case string:
+		recv.Duration, err = time.ParseDuration(value)
+	default:
+		err = errors.New("invalid duration")
+	}
+	return
+}
 
 // IngressRouteSpec defines the spec of the CRD
 type IngressRouteSpec struct {
@@ -54,6 +84,30 @@ type TLS struct {
 	Passthrough bool `json:"passthrough,omitempty"`
 }
 
+type HashPolicyHeader struct {
+	HeaderName string `json:"headerName"`
+}
+
+type HashPolicyCookie struct {
+	Name string    `json:"name"`
+	Ttl  *Duration `json:"ttl,omitempty"`
+	Path string    `json:"path,omitempty"`
+}
+
+type HashPolicyConnectionProperties struct {
+	SourceIp bool `json:"sourceIp"`
+}
+
+type HashPolicy struct {
+	Header *HashPolicyHeader `json:"header,omitempty"`
+
+	Cookie *HashPolicyCookie `json:"cookie,omitempty"`
+
+	ConnectionProperties *HashPolicyConnectionProperties `json:"connectionProperties,omitempty"`
+
+	Terminal bool `json:"terminal,omitempty"`
+}
+
 // Route contains the set of routes for a virtual host
 type Route struct {
 	// Match defines the prefix match
@@ -69,6 +123,14 @@ type Route struct {
 	PermitInsecure bool `json:"permitInsecure,omitempty"`
 	// Indicates that during forwarding, the matched prefix (or path) should be swapped with this value
 	PrefixRewrite string `json:"prefixRewrite,omitempty"`
+
+	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
+
+	PerFilterConfig map[string]interface{} `json:"perFilterConfig,omitempty"`
+
+	Timeout *Duration `json:"timeout,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 }
 
 // TCPProxy contains the set of services to proxy TCP connections.
