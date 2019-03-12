@@ -195,7 +195,7 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 			ENVOY_HTTPS_LISTENER: envoy.Listener(
 				ENVOY_HTTPS_LISTENER,
 				lvc.httpsAddress(), lvc.httpsPort(),
-				secureProxyProtocol(lvc.UseProxyProto),
+				append(secureProxyProtocol(lvc.UseProxyProto), CustomListenerFilters()...),
 			),
 		},
 	}
@@ -206,7 +206,7 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 		lv.listeners[ENVOY_HTTP_LISTENER] = envoy.Listener(
 			ENVOY_HTTP_LISTENER,
 			lvc.httpAddress(), lvc.httpPort(),
-			proxyProtocol(lvc.UseProxyProto),
+			append(proxyProtocol(lvc.UseProxyProto), CustomListenerFilters()...),
 			envoy.HTTPConnectionManager(ENVOY_HTTP_LISTENER, lvc.httpAccessLog()),
 		)
 
