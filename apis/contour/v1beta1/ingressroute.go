@@ -154,6 +154,15 @@ type Service struct {
 	HealthCheck *HealthCheck `json:"healthCheck,omitempty"`
 	// LB Algorithm to apply (see https://github.com/heptio/contour/blob/master/design/ingressroute-design.md#load-balancing)
 	Strategy string `json:"strategy,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
+}
+
+func (recv Service) IdleTimeoutToDuration() *time.Duration {
+	if recv.IdleTimeout == nil {
+		return nil
+	}
+	return &recv.IdleTimeout.Duration
 }
 
 // Delegate allows for delegating VHosts to other IngressRoutes

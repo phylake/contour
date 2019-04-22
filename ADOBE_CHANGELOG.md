@@ -16,9 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
-## v0.10.2-1.3.1-adobe
+## v0.10.2-1.4.0-adobe
 
 - increased max header size filter to match the new envoy hardcoded value
+- added idle timeout to service for upstreams
 
 ## v0.10.2-1.3.0-adobe
 
