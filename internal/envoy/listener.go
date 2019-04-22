@@ -94,8 +94,8 @@ func HTTPConnectionManager(routename, accessLogPath string) listener.Filter {
 						st(map[string]*types.Value{
 							"name": sv("envoy.filters.http.header_size"),
 							"config": st(map[string]*types.Value{
-								// https://github.com/envoyproxy/envoy/blob/v1.8.0/source/common/http/conn_manager_impl.cc#L576-L583
-								"max_bytes": nv(60 * 1024),
+								// https://github.com/phylake/envoy/commit/70e6900f46273472bf3932421b01691551df8362
+								"max_bytes": nv(64 * 1024),
 							}),
 						}),
 						st(map[string]*types.Value{

@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.10.2-1.3.1-adobe
+
+- increased max header size filter to match the new envoy hardcoded value
+
 ## v0.10.2-1.3.0-adobe
 
 - fixed another xDS protocol issue causing OOM in Envoy
