@@ -1183,6 +1183,93 @@ func TestPrefixRewriteIngressRoute(t *testing.T) {
 	}}, nil)
 }
 
+func TestHashPolicyIngressRoute(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &ingressroutev1.VirtualHost{Fqdn: "hashpolicy.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+				HashPolicy: []ingressroutev1.HashPolicy{
+					{
+						Header: &ingressroutev1.HashPolicyHeader{
+							HeaderName: "x-some-header",
+						},
+					},
+					{
+						Cookie: &ingressroutev1.HashPolicyCookie{
+							Name: "nom-nom-nom",
+						},
+						Terminal: true,
+					},
+					{
+						ConnectionProperties: &ingressroutev1.HashPolicyConnectionProperties{
+							SourceIp: true,
+						},
+					},
+				},
+			}},
+		},
+	})
+
+	assertRDS(t, cc, []route.VirtualHost{{
+		Name:    "hashpolicy.hello.world",
+		Domains: []string{"hashpolicy.hello.world", "hashpolicy.hello.world:80"},
+		Routes: []route.Route{{
+			Match: envoy.PrefixMatch("/"), // match all
+			Action: routecluster("default/ws/80/da39a3ee5e", func(r *route.Route_Route) {
+				r.Route.HashPolicy = make([]*route.RouteAction_HashPolicy, 3)
+				r.Route.HashPolicy[0] = &route.RouteAction_HashPolicy{
+					PolicySpecifier: &route.RouteAction_HashPolicy_Header_{
+						Header: &route.RouteAction_HashPolicy_Header{
+							HeaderName: "x-some-header",
+						},
+					},
+				}
+				r.Route.HashPolicy[1] = &route.RouteAction_HashPolicy{
+					PolicySpecifier: &route.RouteAction_HashPolicy_Cookie_{
+						Cookie: &route.RouteAction_HashPolicy_Cookie{
+							Name: "nom-nom-nom",
+						},
+					},
+					Terminal: true,
+				}
+				r.Route.HashPolicy[2] = &route.RouteAction_HashPolicy{
+					PolicySpecifier: &route.RouteAction_HashPolicy_ConnectionProperties_{
+						ConnectionProperties: &route.RouteAction_HashPolicy_ConnectionProperties{
+							SourceIp: true,
+						},
+					},
+				}
+			}),
+		}},
+	}}, nil)
+}
+
 // issue 404
 func TestDefaultBackendDoesNotOverwriteNamedHost(t *testing.T) {
 	rh, cc, done := setup(t)

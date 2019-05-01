@@ -68,6 +68,12 @@ func cluster(service *dag.TCPService) *v2.Cluster {
 		HealthChecks:         edshealthcheck(service),
 	}
 
+	if service.IdleTimeout != nil {
+		c.CommonHttpProtocolOptions = &core.HttpProtocolOptions{
+			IdleTimeout: service.IdleTimeout,
+		}
+	}
+
 	// Drain connections immediately if using healthchecks and the endpoint is known to be removed
 	if service.HealthCheck != nil {
 		c.DrainConnectionsOnHostRemoval = true

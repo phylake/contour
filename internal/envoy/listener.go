@@ -88,6 +88,16 @@ func HTTPConnectionManager(routename, accessLogPath string) listener.Filter {
 					}),
 					"http_filters": lv(
 						st(map[string]*types.Value{
+							"name": sv("envoy.filters.http.ip_allow_deny"),
+						}),
+						st(map[string]*types.Value{
+							"name": sv("envoy.filters.http.header_size"),
+							"config": st(map[string]*types.Value{
+								// https://github.com/phylake/envoy/commit/70e6900f46273472bf3932421b01691551df8362
+								"max_bytes": nv(64 * 1024),
+							}),
+						}),
+						st(map[string]*types.Value{
 							"name": sv(util.Gzip),
 						}),
 						st(map[string]*types.Value{
@@ -97,6 +107,7 @@ func HTTPConnectionManager(routename, accessLogPath string) listener.Filter {
 							"name": sv(util.Router),
 						}),
 					),
+					"generate_request_id": {Kind: &types.Value_BoolValue{BoolValue: false}},
 					"http_protocol_options": st(map[string]*types.Value{
 						"accept_http_10": {Kind: &types.Value_BoolValue{BoolValue: true}},
 					}),

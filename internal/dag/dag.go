@@ -61,11 +61,7 @@ type Route struct {
 	// TODO(dfc) this should go on the service
 	Websocket bool
 
-	// A timeout applied to requests on this route.
-	// A timeout of zero implies "use envoy's default"
-	// A timeout of -1 represents "infinity"
-	// TODO(dfc) should this move to service?
-	Timeout time.Duration
+	Timeout *time.Duration
 
 	// RetryOn specifies the conditions under which retry takes place.
 	// If empty, retries will not be performed.
@@ -81,6 +77,12 @@ type Route struct {
 
 	// Indicates that during forwarding, the matched prefix (or path) should be swapped with this value
 	PrefixRewrite string
+
+	HashPolicy []ingressroutev1.HashPolicy
+
+	PerFilterConfig map[string]interface{}
+
+	IdleTimeout *time.Duration
 }
 
 func (r *Route) addHTTPService(s *HTTPService) {
@@ -198,6 +200,8 @@ type TCPService struct {
 	// See https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/cds.proto#envoy-api-enum-cluster-lbpolicy
 	LoadBalancerStrategy string
 
+	IdleTimeout *time.Duration
+
 	// Circuit breaking limits
 
 	// Max connections is maximum number of connections
@@ -225,11 +229,12 @@ type servicemeta struct {
 	port        int32
 	weight      int
 	strategy    string
+	idleTimeout string
 	healthcheck string // %#v of *ingressroutev1.HealthCheck
 }
 
 func (s *TCPService) toMeta() servicemeta {
-	return servicemeta{
+	sm := servicemeta{
 		name:        s.Name,
 		namespace:   s.Namespace,
 		port:        s.Port,
@@ -237,6 +242,10 @@ func (s *TCPService) toMeta() servicemeta {
 		strategy:    s.LoadBalancerStrategy,
 		healthcheck: healthcheckToString(s.HealthCheck),
 	}
+	if s.IdleTimeout != nil {
+		sm.idleTimeout = s.IdleTimeout.String()
+	}
+	return sm
 }
 
 func (s *TCPService) Visit(func(Vertex)) {
