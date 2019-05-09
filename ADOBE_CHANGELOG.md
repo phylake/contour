@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.11.0-rc1-1.5.0-adobe
+
+- added http health check to support zero downtime envoy upgrades
+
 ## v0.11.0-rc1-1.4.0-adobe
 
 - built from contour 9ebd4791ccf02ed24d1fd8409c0e658561952e3a

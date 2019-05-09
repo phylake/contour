@@ -91,6 +91,16 @@ func HTTPConnectionManager(routename, accessLogPath string) listener.Filter {
 							"name": sv("envoy.filters.http.ip_allow_deny"),
 						}),
 						st(map[string]*types.Value{
+							"name": sv("envoy.health_check"),
+							"config": st(map[string]*types.Value{
+								"pass_through_mode": {Kind: &types.Value_BoolValue{BoolValue: false}},
+								"headers": lv(st(map[string]*types.Value{
+									"name":        sv(":path"),
+									"exact_match": sv("/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"),
+								})),
+							}),
+						}),
+						st(map[string]*types.Value{
 							"name": sv("envoy.filters.http.header_size"),
 							"config": st(map[string]*types.Value{
 								// https://github.com/phylake/envoy/commit/70e6900f46273472bf3932421b01691551df8362
