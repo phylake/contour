@@ -98,6 +98,12 @@ func cluster(cluster *dag.Cluster, service *dag.TCPService) *v2.Cluster {
 		c.LoadAssignment = StaticClusterLoadAssignment(service)
 	}
 
+	if service.IdleTimeout != nil {
+		c.CommonHttpProtocolOptions = &core.HttpProtocolOptions{
+			IdleTimeout: service.IdleTimeout,
+		}
+	}
+
 	// Drain connections immediately if using healthchecks and the endpoint is known to be removed
 	if service.HealthCheck != nil {
 		c.DrainConnectionsOnHostRemoval = true

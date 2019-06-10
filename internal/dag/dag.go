@@ -67,6 +67,14 @@ type Route struct {
 
 	// Indicates that during forwarding, the matched prefix (or path) should be swapped with this value
 	PrefixRewrite string
+
+	Timeout *time.Duration
+
+	HashPolicy []ingressroutev1.HashPolicy
+
+	PerFilterConfig map[string]interface{}
+
+	IdleTimeout *time.Duration
 }
 
 // TimeoutPolicy defines the timeout request/idle
@@ -217,6 +225,13 @@ type TCPService struct {
 
 	*v1.ServicePort
 
+	Weight int
+
+	// See https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/cds.proto#envoy-api-enum-cluster-lbpolicy
+	LoadBalancerStrategy string
+
+	IdleTimeout *time.Duration
+
 	// Circuit breaking limits
 
 	// Max connections is maximum number of connections
@@ -245,16 +260,23 @@ type servicemeta struct {
 	name        string
 	namespace   string
 	port        int32
+	weight      int
+	strategy    string
+	idleTimeout string
 	healthcheck string // %#v of *ingressroutev1.HealthCheck
 }
 
 func (s *TCPService) toMeta() servicemeta {
-	return servicemeta{
+	sm := servicemeta{
 		name:        s.Name,
 		namespace:   s.Namespace,
 		port:        s.Port,
 		healthcheck: healthcheckToString(s.HealthCheck),
 	}
+	if s.IdleTimeout != nil {
+		sm.idleTimeout = s.IdleTimeout.String()
+	}
+	return sm
 }
 
 func (s *TCPService) Visit(func(Vertex)) {

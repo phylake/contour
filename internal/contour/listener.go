@@ -133,11 +133,8 @@ type ListenerCache struct {
 
 // NewListenerCache returns an instance of a ListenerCache
 func NewListenerCache(address string, port int) ListenerCache {
-	stats := envoy.StatsListener(address, port)
 	return ListenerCache{
-		staticValues: map[string]*v2.Listener{
-			stats.Name: stats,
-		},
+		staticValues: map[string]*v2.Listener{},
 	}
 }
 
@@ -242,7 +239,7 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 			ENVOY_HTTPS_LISTENER: envoy.Listener(
 				ENVOY_HTTPS_LISTENER,
 				lvc.httpsAddress(), lvc.httpsPort(),
-				secureProxyProtocol(lvc.UseProxyProto),
+				append(secureProxyProtocol(lvc.UseProxyProto), CustomListenerFilters()...),
 			),
 		},
 	}
@@ -253,7 +250,7 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 		lv.listeners[ENVOY_HTTP_LISTENER] = envoy.Listener(
 			ENVOY_HTTP_LISTENER,
 			lvc.httpAddress(), lvc.httpPort(),
-			proxyProtocol(lvc.UseProxyProto),
+			append(proxyProtocol(lvc.UseProxyProto), CustomListenerFilters()...),
 			envoy.HTTPConnectionManager(ENVOY_HTTP_LISTENER, lvc.httpAccessLog()),
 		)
 

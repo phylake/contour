@@ -423,3 +423,55 @@ func TestUpgradeHTTPS(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestPerFilterConfig(t *testing.T) {
+	r := new(dag.Route)
+	msi := map[string]interface{}{
+		"filter": map[string]interface{}{
+			"map": map[string]interface{}{
+				"float": 9.0,
+				"bool":  true,
+			},
+			"list": []interface{}{
+				"string",
+			},
+		},
+	}
+	r.PerFilterConfig = msi
+	got := PerFilterConfig(r)
+	want := map[string]*types.Struct{
+		"filter": {
+			Fields: map[string]*types.Value{
+				"map": {
+					Kind: &types.Value_StructValue{
+						&types.Struct{
+							Fields: map[string]*types.Value{
+								"float": {
+									Kind: &types.Value_NumberValue{9.0},
+								},
+								"bool": {
+									Kind: &types.Value_BoolValue{true},
+								},
+							},
+						},
+					},
+				},
+				"list": {
+					Kind: &types.Value_ListValue{
+						&types.ListValue{
+							Values: []*types.Value{
+								{
+									Kind: &types.Value_StringValue{"string"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatal(diff)
+	}
+}
