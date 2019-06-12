@@ -174,6 +174,10 @@ func lbPolicy(strategy string) v2.Cluster_LbPolicy {
 		return v2.Cluster_LEAST_REQUEST
 	case "Random":
 		return v2.Cluster_RANDOM
+	case "RingHash":
+		return v2.Cluster_RING_HASH
+	case "Maglev":
+		return v2.Cluster_MAGLEV
 	default:
 		return v2.Cluster_ROUND_ROBIN
 	}

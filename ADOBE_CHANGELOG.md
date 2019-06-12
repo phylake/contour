@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.13.0-rc1-1.5.1-adobe
+
+- fix regression in sticky sessions caused by https://github.com/heptio/contour/pull/1152
+
 ## v0.13.0-rc1-1.5.0-adobe
 
 - built from contour c4a296e2717bd362c4f31bfc2760711f4be8265d
