@@ -28,7 +28,6 @@ import (
 // weighted cluster.
 func RouteRoute(r *dag.Route, clusters []*dag.Cluster) *route.Route_Route {
 	ra := route.RouteAction{
-		RetryPolicy:   retryPolicy(r),
 		Timeout:       r.Timeout,
 		IdleTimeout:   r.IdleTimeout,
 		PrefixRewrite: r.PrefixRewrite,
@@ -180,6 +179,9 @@ func VirtualHost(hostname string) route.VirtualHost {
 	return route.VirtualHost{
 		Name:    hashname(60, hostname),
 		Domains: domains,
+		RetryPolicy: &route.RetryPolicy{
+			RetryOn: "connect-failure",
+		},
 	}
 }
 
