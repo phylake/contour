@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.13.0-rc1-1.6.0-adobe
+
+- disabled configurable retries
+- enabled single L4 retry for all virtual hosts
+
 ## v0.13.0-rc1-1.5.1-adobe
 
 - fix regression in sticky sessions caused by https://github.com/heptio/contour/pull/1152
