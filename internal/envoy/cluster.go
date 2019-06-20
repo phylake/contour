@@ -98,6 +98,12 @@ func cluster(cluster *dag.Cluster, service *dag.TCPService) *v2.Cluster {
 		c.LoadAssignment = StaticClusterLoadAssignment(service)
 	}
 
+	if cluster.IdleTimeout != nil {
+		c.CommonHttpProtocolOptions = &core.HttpProtocolOptions{
+			IdleTimeout: cluster.IdleTimeout,
+		}
+	}
+
 	// Drain connections immediately if using healthchecks and the endpoint is known to be removed
 	if cluster.HealthCheck != nil {
 		c.DrainConnectionsOnHostRemoval = true
@@ -168,8 +174,10 @@ func lbPolicy(strategy string) v2.Cluster_LbPolicy {
 		return v2.Cluster_LEAST_REQUEST
 	case "Random":
 		return v2.Cluster_RANDOM
-	case "Cookie":
+	case "RingHash":
 		return v2.Cluster_RING_HASH
+	case "Maglev":
+		return v2.Cluster_MAGLEV
 	default:
 		return v2.Cluster_ROUND_ROBIN
 	}
