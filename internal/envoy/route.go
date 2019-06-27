@@ -28,11 +28,11 @@ import (
 // weighted cluster.
 func RouteRoute(r *dag.Route) *route.Route_Route {
 	ra := route.RouteAction{
-		RetryPolicy:   retryPolicy(r),
-		Timeout:       timeout(r),
+		Timeout:       r.Timeout,
+		IdleTimeout:   r.IdleTimeout,
 		PrefixRewrite: r.PrefixRewrite,
-		HashPolicy:    hashPolicy(r),
 	}
+	setHashPolicy(r, &ra)
 
 	if r.Websocket {
 		ra.UpgradeConfigs = append(ra.UpgradeConfigs,
@@ -175,6 +175,11 @@ func VirtualHost(hostname string) route.VirtualHost {
 	return route.VirtualHost{
 		Name:    hashname(60, hostname),
 		Domains: domains,
+		RetryPolicy: &route.RetryPolicy{
+			RetryOn:                       "connect-failure",
+			NumRetries:                    u32(3),
+			HostSelectionRetryMaxAttempts: 3,
+		},
 	}
 }
 
