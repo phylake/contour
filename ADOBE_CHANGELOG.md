@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.13.0-1.7.1-adobe
+
+- fix Envoy pegged CPU caused by string parsing
+
 ## v0.13.0-1.7.0-adobe
 
 - remove upstream http connection manager idle timeout

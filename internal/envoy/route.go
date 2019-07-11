@@ -128,9 +128,7 @@ func UpgradeHTTPS() *route.Route_Redirect {
 
 // RouteHeaders returns a list of headers to be applied at the Route level on envoy
 func RouteHeaders() []*core.HeaderValueOption {
-	return headers(
-		appendHeader("x-request-start", "t=%START_TIME(%s.%3f)%"),
-	)
+	return []*core.HeaderValueOption{}
 }
 
 // weightedClusters returns a route.WeightedCluster for multiple services.
