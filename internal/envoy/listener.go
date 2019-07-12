@@ -131,6 +131,14 @@ func HTTPConnectionManager(routename, accessLogPath string) listener.Filter {
 					// 	}},
 					// },
 					{
+						Name: "envoy.filters.http.health_check_simple",
+						ConfigType: &http.HttpFilter_Config{&types.Struct{
+							Fields: map[string]*types.Value{
+								"path": {Kind: &types.Value_StringValue{"/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
+							},
+						}},
+					},
+					{
 						Name: "envoy.filters.http.header_size",
 						ConfigType: &http.HttpFilter_Config{&types.Struct{
 							Fields: map[string]*types.Value{
