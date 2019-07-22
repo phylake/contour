@@ -250,8 +250,8 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 					}
 
 				case "type.googleapis.com/envoy.api.v2.auth.Secret":
-					// uh? let's do after cluster
-					if len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.Cluster", NodeId: req.Node.Id}]) > 0 {
+					// uh? let's do after listener
+					if len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.Listener", NodeId: req.Node.Id}]) >= 2 {
 						freeToGo = true
 					}
 
