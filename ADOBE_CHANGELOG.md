@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.13.0-1.9.0-adobe
+
+- add `drain_connections_on_host_removal` to clusters
+
 ## v0.13.0-1.8.0-adobe
 
 - configure `envoy.filters.http.health_check_simple` for zero-downtime upgrades

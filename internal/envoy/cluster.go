@@ -91,6 +91,7 @@ func cluster(cluster *dag.Cluster, service *dag.TCPService) *v2.Cluster {
 				MaxRequests:    u32nil(1000000),
 			}},
 		},
+		DrainConnectionsOnHostRemoval: true,
 	}
 
 	switch len(service.ExternalName) {
