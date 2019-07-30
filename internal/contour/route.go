@@ -156,6 +156,7 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 							Match:               envoy.PrefixMatch(r.Prefix),
 							Action:              envoy.RouteRoute(r),
 							RequestHeadersToAdd: envoy.RouteHeaders(),
+							PerFilterConfig:     envoy.PerFilterConfig(r),
 						}
 
 						if r.HTTPSUpgrade {
@@ -182,6 +183,7 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 							Match:               envoy.PrefixMatch(r.Prefix),
 							Action:              envoy.RouteRoute(r),
 							RequestHeadersToAdd: envoy.RouteHeaders(),
+							PerFilterConfig:     envoy.PerFilterConfig(r),
 						})
 					}
 				})
