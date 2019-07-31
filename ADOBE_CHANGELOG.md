@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.14.0-1.10.0-adobe
+
+- health check interval matches K8s probes (200-399)
+
 ## v0.14.0-1.9.0-adobe
 
 - built from contour v0.14.0
