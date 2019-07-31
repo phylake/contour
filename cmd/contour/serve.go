@@ -260,7 +260,7 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	ch.Metrics = metrics
 	reh.Metrics = metrics
 
-	// Adobe: synchornous cache init
+	// Adobe: synchronous cache init
 	err := initCache(client, contourClient, &reh)
 	check(err)
 
@@ -284,11 +284,13 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	g.Add(startInformer(contourInformers, log.WithField("context", "contourinformers")))
 
 	// step 8. setup prometheus registry and register base metrics.
+	// (Adobe) now executed after step 4
 	// registry := prometheus.NewRegistry()
 	// registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 	// registry.MustRegister(prometheus.NewGoCollector())
 
 	// step 9. create metrics service and register with workgroup.
+	// (Adobe) now executed after step 4
 	// metricsvc := metrics.Service{
 	// 	Service: httpsvc.Service{
 	// 		Addr:        ctx.metricsAddr,
@@ -313,6 +315,7 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	// step 11. register our custom metrics and plumb into cache handler
 	// and resource event handler.
+	// (Adobe) now executed after step 4
 	// metrics := metrics.NewMetrics(registry)
 	// ch.Metrics = metrics
 	// reh.Metrics = metrics
