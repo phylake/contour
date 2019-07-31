@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_types "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/gogo/protobuf/types"
 	"github.com/heptio/contour/internal/dag"
 )
@@ -49,6 +50,13 @@ func healthCheck(cluster *dag.Cluster) *core.HealthCheck {
 			HttpHealthCheck: &core.HealthCheck_HttpHealthCheck{
 				Path: hc.Path,
 				Host: host,
+				// [200, 400) so 200-399 to match K8s probes
+				ExpectedStatuses: []*envoy_types.Int64Range{
+					{
+						Start: 200,
+						End:   400,
+					},
+				},
 			},
 		},
 	}
