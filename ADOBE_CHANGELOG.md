@@ -16,6 +16,12 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.14.0-1.11.0-adobe
+
+- order xDS updates
+- skip no-op xDS updates
+- discover all resources synchronously on start before sending xDS responses
+
 ## v0.14.0-1.10.0-adobe
 
 - health check interval matches K8s probes (200-399)
