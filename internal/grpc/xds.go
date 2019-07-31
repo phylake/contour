@@ -15,7 +15,6 @@ package grpc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -118,7 +117,7 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 		// stick some debugging details on the logger, not that we redeclare log in this scope
 		// so the next time around the loop all is forgotten.
 		log := log.
-			WithField("version_info", req.VersionInfo).
+			WithField("version_info_req", req.VersionInfo).
 			WithField("resource_names", req.ResourceNames).
 			WithField("type_url", req.TypeUrl).
 			WithField("response_nonce", req.ResponseNonce).
@@ -148,7 +147,6 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 				// no resource hints supplied, return the full
 				// contents of the resource
 				resources = r.Contents()
-
 			default:
 				// resource hints supplied, return exactly those
 				resources = r.Query(req.ResourceNames)
@@ -183,21 +181,16 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 				mutex.Lock()
 				switch req.TypeUrl {
 				case "type.googleapis.com/envoy.api.v2.Cluster":
-					// fmt.Println("node", req.Node.Id, "known  clusters (cds)", len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.Cluster", NodeId: req.Node.Id}]))
 					freeToGo = true
 
 				case "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment":
 					// After CDS
-					// fmt.Println("node", req.Node.Id, "known  clusters (eds)", len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.Cluster", NodeId: req.Node.Id}]))
 					if isKnown("type.googleapis.com/envoy.api.v2.Cluster", req.Node.Id, req.ResourceNames) {
 						freeToGo = true
 					}
 
 				case "type.googleapis.com/envoy.api.v2.Listener":
 					// After CDS and EDS
-					// fmt.Println("node", req.Node.Id, "known  clusters (lds)", len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.Cluster", NodeId: req.Node.Id}]))
-					// fmt.Println("node", req.Node.Id, "known endpoints (lds)", streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment", NodeId: req.Node.Id}]["total"])
-
 					// FOR NOW: only ensure some CDS and EDS were sent (can't tie a listener back to a cluster or endpoint)
 					if len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.Cluster", NodeId: req.Node.Id}]) > 0 &&
 						len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment", NodeId: req.Node.Id}]) > 0 {
@@ -206,12 +199,7 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 
 				case "type.googleapis.com/envoy.api.v2.RouteConfiguration":
 					// After LDS and CDS
-					// fmt.Println("node", req.Node.Id, "known  clusters (rds)", len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.Cluster", NodeId: req.Node.Id}]))
-					// fmt.Println("node", req.Node.Id, "known endpoints (rds)", streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment", NodeId: req.Node.Id}]["total"])
-					// fmt.Println("node", req.Node.Id, "known listeners (rds)", len(streamCache[streamId{TypeUrl: "type.googleapis.com/envoy.api.v2.Listener", NodeId: req.Node.Id}]))
-
 					if isKnown("type.googleapis.com/envoy.api.v2.Listener", req.Node.Id, req.ResourceNames) {
-						// fmt.Println("RDS: listener is known, now checking clusters")
 						// build a list of all the clusters referenced in this route config
 						clusterSet := make(map[string]struct{})
 						for _, rec := range resources {
@@ -221,14 +209,6 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 									cl := r.GetRoute().GetCluster()
 									if cl != "" {
 										clusterSet[cl] = struct{}{}
-									} else {
-										// if _, ok := r.GetAction().(*route.Route_Redirect); !ok {
-										// 	fmt.Println("RDS: blank cluster, NOT a redirect !!!!!!")
-										// 	fmt.Println("RDS: BEGIN DUMP")
-										// 	spew.Dump(r.GetAction())
-										// 	dump(r.GetAction(), "ACTION")
-										// 	fmt.Println("RDS: END DUMP")
-										// }
 									}
 								}
 							}
@@ -257,8 +237,6 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 
 				default:
 					log.Warn("xDS response ordering: type not handled")
-					// dump(req, "Request")
-					// time.Sleep(5 * time.Second)
 					// might as well just send for now
 					freeToGo = true
 				}
@@ -268,18 +246,11 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 			if err := st.Send(resp); err != nil {
 				return err
 			}
+			log.WithField("count", len(resources)).WithField("version_info_resp", last).Info("response")
 
 			// cache what was sent
 			cacheData(stId, resources)
 			previous_resources = resources
-
-			log.
-				WithField("count", len(resources)).
-				// WithField("req.typeurl", req.TypeUrl).
-				// WithField("resp.typeurl", r.TypeURL()).
-				// WithField("pending", pending).
-				WithField("version_info_new", last).
-				Info("response")
 
 		case <-ctx.Done():
 			return ctx.Err()
@@ -354,7 +325,6 @@ func cacheData(stId streamId, data []proto.Message) {
 			streamCache[stId]["total"] = strconv.Itoa(current + nb)
 
 		case *v2.Listener:
-			// fmt.Println("Adding listener", v.Name, stId, stId)
 			streamCache[stId][v.Name] = "known"
 
 		case *v2.RouteConfiguration:
@@ -365,8 +335,6 @@ func cacheData(stId streamId, data []proto.Message) {
 
 		default:
 			// fmt.Println("no idea what to cache", v)
-			dump(v, "**** SOME TYPE TO BE CACHED ****")
-			// spew.Dump(v)
 		}
 	}
 }
@@ -382,14 +350,6 @@ func lessProtoMessage(x, y proto.Message) bool {
 	default:
 		return true
 	}
-}
-
-func dump(obj interface{}, desc string) {
-	res2B, _ := json.Marshal(obj)
-	fmt.Printf("--- BEGIN %s ---\n", desc)
-	fmt.Println(string(res2B))
-	fmt.Printf("--- END %s ---\n", desc)
-	// spew.Dump(obj)
 }
 
 // toAny converts the contents of a resourcer's Values to the
