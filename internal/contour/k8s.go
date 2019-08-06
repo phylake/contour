@@ -116,10 +116,10 @@ func (reh *ResourceEventHandler) validIngressClass(obj interface{}) bool {
 	switch i := obj.(type) {
 	case *ingressroutev1.IngressRoute:
 		class, ok := getIngressClassAnnotation(i.Annotations)
-		return !ok || class == reh.ingressClass()
+		return ok && class == reh.ingressClass()
 	case *v1beta1.Ingress:
 		class, ok := getIngressClassAnnotation(i.Annotations)
-		return !ok || class == reh.ingressClass()
+		return ok && class == reh.ingressClass()
 	default:
 		return true
 	}
