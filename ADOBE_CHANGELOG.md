@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.14.0-1.11.2-adobe
+
+- fix issue where the endpoints were not cached properly on start
+
 ## v0.14.0-1.11.1-adobe
 
 - fix faulty `validIngressClass` function in upstream impl

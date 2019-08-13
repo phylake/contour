@@ -7,7 +7,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func initCache(client *kubernetes.Clientset, contourClient *clientset.Clientset, reh *contour.ResourceEventHandler) error {
+func initCache(client *kubernetes.Clientset, contourClient *clientset.Clientset, reh *contour.ResourceEventHandler, et *contour.EndpointsTranslator) error {
 	reh.Info("starting cache initialization")
 
 	// Services
@@ -36,7 +36,7 @@ func initCache(client *kubernetes.Clientset, contourClient *clientset.Clientset,
 		return err
 	}
 	for i := range endpoints.Items {
-		reh.Insert(&endpoints.Items[i])
+		et.OnAdd(&endpoints.Items[i])
 	}
 	reh.WithField("count", len(endpoints.Items)).Info("endpoints")
 
