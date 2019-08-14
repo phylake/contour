@@ -239,31 +239,6 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 		FieldLogger:  log.WithField("context", "resourceEventHandler"),
 	}
 
-	// Adobe: step 8 now
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
-	registry.MustRegister(prometheus.NewGoCollector())
-
-	// Adobe: step 9 (partial) now
-	metricsvc := metrics.Service{
-		Service: httpsvc.Service{
-			Addr:        ctx.metricsAddr,
-			Port:        ctx.metricsPort,
-			FieldLogger: log.WithField("context", "metricsvc"),
-		},
-		Client:   client,
-		Registry: registry,
-	}
-
-	// Adobe: step 11 now
-	metrics := metrics.NewMetrics(registry)
-	ch.Metrics = metrics
-	reh.Metrics = metrics
-
-	// Adobe: synchronous cache init
-	err := initCache(client, contourClient, &reh)
-	check(err)
-
 	// step 5. register out resource event handler with the k8s informers.
 	coreInformers.Core().V1().Services().Informer().AddEventHandler(&reh)
 	coreInformers.Extensions().V1beta1().Ingresses().Informer().AddEventHandler(&reh)
@@ -284,22 +259,20 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	g.Add(startInformer(contourInformers, log.WithField("context", "contourinformers")))
 
 	// step 8. setup prometheus registry and register base metrics.
-	// (Adobe) now executed after step 4
-	// registry := prometheus.NewRegistry()
-	// registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
-	// registry.MustRegister(prometheus.NewGoCollector())
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	registry.MustRegister(prometheus.NewGoCollector())
 
 	// step 9. create metrics service and register with workgroup.
-	// (Adobe) now executed after step 4
-	// metricsvc := metrics.Service{
-	// 	Service: httpsvc.Service{
-	// 		Addr:        ctx.metricsAddr,
-	// 		Port:        ctx.metricsPort,
-	// 		FieldLogger: log.WithField("context", "metricsvc"),
-	// 	},
-	// 	Client:   client,
-	// 	Registry: registry,
-	// }
+	metricsvc := metrics.Service{
+		Service: httpsvc.Service{
+			Addr:        ctx.metricsAddr,
+			Port:        ctx.metricsPort,
+			FieldLogger: log.WithField("context", "metricsvc"),
+		},
+		Client:   client,
+		Registry: registry,
+	}
 	g.Add(metricsvc.Start)
 
 	// step 10. create debug service and register with workgroup.
@@ -315,10 +288,13 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	// step 11. register our custom metrics and plumb into cache handler
 	// and resource event handler.
-	// (Adobe) now executed after step 4
-	// metrics := metrics.NewMetrics(registry)
-	// ch.Metrics = metrics
-	// reh.Metrics = metrics
+	metrics := metrics.NewMetrics(registry)
+	ch.Metrics = metrics
+	reh.Metrics = metrics
+
+	// step 11.5. synchronous cache init (Adobe)
+	err := initCache(client, contourClient, &reh, et)
+	check(err)
 
 	// step 12. create grpc handler and register with workgroup.
 	g.Add(func(stop <-chan struct{}) error {
