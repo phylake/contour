@@ -84,6 +84,14 @@ type Route struct {
 
 	// Indicates that during forwarding, the matched prefix (or path) should be swapped with this value
 	PrefixRewrite string
+
+	Timeout *time.Duration
+
+	HashPolicy []ingressroutev1.HashPolicy
+
+	PerFilterConfig map[string]interface{}
+
+	IdleTimeout *time.Duration
 }
 
 // TimeoutPolicy defines the timeout request/idle
@@ -291,6 +299,8 @@ type Cluster struct {
 	LoadBalancerStrategy string
 
 	HealthCheck *ingressroutev1.HealthCheck
+
+	IdleTimeout *time.Duration
 }
 
 func (c Cluster) Visit(f func(Vertex)) {

@@ -157,6 +157,7 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 							Match:               envoy.RoutePrefix(r.Prefix),
 							Action:              envoy.RouteRoute(&r.Route),
 							RequestHeadersToAdd: envoy.RouteHeaders(),
+							PerFilterConfig:     envoy.PerFilterConfig(&r.Route),
 						}
 
 						if r.HTTPSUpgrade {
@@ -173,6 +174,7 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 							Match:               envoy.RouteRegex(r.Regex),
 							Action:              envoy.RouteRoute(&r.Route),
 							RequestHeadersToAdd: envoy.RouteHeaders(),
+							PerFilterConfig:     envoy.PerFilterConfig(&r.Route),
 						}
 
 						if r.HTTPSUpgrade {
@@ -200,6 +202,7 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 							Match:               envoy.RoutePrefix(r.Prefix),
 							Action:              envoy.RouteRoute(&r.Route),
 							RequestHeadersToAdd: envoy.RouteHeaders(),
+							PerFilterConfig:     envoy.PerFilterConfig(&r.Route),
 						})
 					case *dag.RegexRoute:
 						if len(r.Clusters) < 1 {
@@ -210,6 +213,7 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 							Match:               envoy.RouteRegex(r.Regex),
 							Action:              envoy.RouteRoute(&r.Route),
 							RequestHeadersToAdd: envoy.RouteHeaders(),
+							PerFilterConfig:     envoy.PerFilterConfig(&r.Route),
 						})
 
 					}
