@@ -16,6 +16,12 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.14.2-1.12.0-adobe
+
+- re-enable h2
+- group filter chains by cert and server names
+- better logging when lds is waiting for cds
+
 ## v0.14.2-1.11.3-adobe
 
 - remove h2 from ALPN list to fix 404s

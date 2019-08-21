@@ -14,7 +14,6 @@
 package contour
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 
@@ -257,8 +256,6 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 
 	}
 
-	fmt.Println("NB Filter Chains", len(lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains))
-
 	// remove the https listener if there are no vhosts bound to it.
 	if len(lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains) == 0 {
 		delete(lv.listeners, ENVOY_HTTPS_LISTENER)
@@ -273,7 +270,7 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 				return lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains[i].FilterChainMatch.ServerNames[0] < lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains[j].FilterChainMatch.ServerNames[0]
 			})
 	}
-	fmt.Println("Returning listeners", len(lv.listeners))
+
 	return lv.listeners
 }
 
@@ -323,22 +320,9 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 		}
 
 		if !fcExists {
-			// Extract the CN from the secret
-			// TODO: move this
-			// block, _ := pem.Decode(vh.Secret.Cert())
-			// if block == nil {
-			// 	panic("failed to parse certificate PEM") // TODO: error handling
-			// }
-			// cert, err := x509.ParseCertificate(block.Bytes)
-			// if err != nil {
-			// 	panic("failed to parse certificate: " + err.Error()) // TODO: error handling
-			// }
-			// fmt.Println("CN", cert.Subject.CommonName)
-
 			fc := listener.FilterChain{
 				FilterChainMatch: &listener.FilterChainMatch{
 					ServerNames: []string{vh.VirtualHost.Name},
-					// ServerNames: []string{cert.Subject.CommonName},
 				},
 				Filters: filters,
 			}
