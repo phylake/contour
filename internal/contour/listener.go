@@ -14,6 +14,7 @@
 package contour
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 
@@ -256,6 +257,8 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 
 	}
 
+	fmt.Println("NB Filter Chains", len(lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains))
+
 	// remove the https listener if there are no vhosts bound to it.
 	if len(lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains) == 0 {
 		delete(lv.listeners, ENVOY_HTTPS_LISTENER)
@@ -270,7 +273,7 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 				return lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains[i].FilterChainMatch.ServerNames[0] < lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains[j].FilterChainMatch.ServerNames[0]
 			})
 	}
-
+	fmt.Println("Returning listeners", len(lv.listeners))
 	return lv.listeners
 }
 
@@ -306,19 +309,48 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			alpnProtos = nil // do not offer ALPN
 		}
 
-		fc := listener.FilterChain{
-			FilterChainMatch: &listener.FilterChainMatch{
-				ServerNames: []string{vh.VirtualHost.Name},
-			},
-			Filters: filters,
+		// Group filter chain by the cert
+		// if a filter chain with that cert already exists, just add the vhost name to the existing list
+		// TODO: only do this if vh.Secret != nil
+		secretName := envoy.Secretname(vh.Secret)
+		fcExists := false
+		for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
+			if envoy.RetrieveSecretName(fc.TlsContext) == secretName {
+				fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
+				fcExists = true
+				break
+			}
 		}
 
-		// attach certificate data to this listener if provided.
-		if vh.Secret != nil {
-			fc.TlsContext = envoy.DownstreamTLSContext(envoy.Secretname(vh.Secret), vh.MinProtoVersion, alpnProtos...)
+		if !fcExists {
+			// Extract the CN from the secret
+			// TODO: move this
+			// block, _ := pem.Decode(vh.Secret.Cert())
+			// if block == nil {
+			// 	panic("failed to parse certificate PEM") // TODO: error handling
+			// }
+			// cert, err := x509.ParseCertificate(block.Bytes)
+			// if err != nil {
+			// 	panic("failed to parse certificate: " + err.Error()) // TODO: error handling
+			// }
+			// fmt.Println("CN", cert.Subject.CommonName)
+
+			fc := listener.FilterChain{
+				FilterChainMatch: &listener.FilterChainMatch{
+					ServerNames: []string{vh.VirtualHost.Name},
+					// ServerNames: []string{cert.Subject.CommonName},
+				},
+				Filters: filters,
+			}
+
+			// attach certificate data to this listener if provided.
+			if vh.Secret != nil {
+				fc.TlsContext = envoy.DownstreamTLSContext(envoy.Secretname(vh.Secret), vh.MinProtoVersion, alpnProtos...)
+			}
+
+			v.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fc)
 		}
 
-		v.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fc)
 	default:
 		// recurse
 		vertex.Visit(v.visit)
