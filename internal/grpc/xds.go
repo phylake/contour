@@ -223,7 +223,8 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 							if isKnown("type.googleapis.com/envoy.api.v2.Cluster", req.Node.Id, clusters) {
 								freeToGo = true
 							} else {
-								fmt.Println("can't go; some clusters unknown...")
+								unknown := diff("type.googleapis.com/envoy.api.v2.Cluster", req.Node.Id, clusters)
+								log.WithField("unknown", unknown).Info("wait_on_cds")
 							}
 							// TODO: also check route.GetVhds()
 						}
@@ -295,6 +296,35 @@ func isKnown(typeURL string, nodeId string, names []string) bool {
 		fmt.Println("isKnown: unknown typeURL", typeURL)
 	}
 	return true
+}
+
+func diff(typeURL string, nodeId string, names []string) []string {
+	stId := streamId{
+		TypeUrl: typeURL,
+		NodeId:  nodeId,
+	}
+
+	switch typeURL {
+	case "type.googleapis.com/envoy.api.v2.Cluster":
+		// either the key (unique name) or the value (name known to EDS) will work
+		ret := make([]string, 0)
+		for _, n := range names {
+			foundMatch := false
+			for k, v := range streamCache[stId] {
+				if n == k || n == v {
+					foundMatch = true
+					break
+				}
+			}
+			if !foundMatch {
+				ret = append(ret, n)
+			}
+		}
+		return ret
+	default:
+		fmt.Println("diff: not implemented", typeURL)
+	}
+	return []string{}
 }
 
 func cacheData(stId streamId, data []proto.Message) {
