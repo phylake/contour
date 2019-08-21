@@ -308,14 +308,15 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 
 		// Group filter chain by the cert
 		// if a filter chain with that cert already exists, just add the vhost name to the existing list
-		// TODO: only do this if vh.Secret != nil
-		secretName := envoy.Secretname(vh.Secret)
 		fcExists := false
-		for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
-			if envoy.RetrieveSecretName(fc.TlsContext) == secretName {
-				fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
-				fcExists = true
-				break
+		if vh.Secret != nil {
+			secretName := envoy.Secretname(vh.Secret)
+			for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
+				if envoy.RetrieveSecretName(fc.TlsContext) == secretName {
+					fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
+					fcExists = true
+					break
+				}
 			}
 		}
 
