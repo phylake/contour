@@ -298,7 +298,7 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 		filters := []listener.Filter{
 			envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, v.httpsAccessLog()),
 		}
-		alpnProtos := []string{"http/1.1"}
+		alpnProtos := []string{"h2", "http/1.1"}
 		if vh.VirtualHost.TCPProxy != nil {
 			filters = []listener.Filter{
 				envoy.TCPProxy(ENVOY_HTTPS_LISTENER, vh.VirtualHost.TCPProxy, v.httpsAccessLog()),
@@ -306,19 +306,36 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			alpnProtos = nil // do not offer ALPN
 		}
 
-		fc := listener.FilterChain{
-			FilterChainMatch: &listener.FilterChainMatch{
-				ServerNames: []string{vh.VirtualHost.Name},
-			},
-			Filters: filters,
-		}
-
-		// attach certificate data to this listener if provided.
+		// Group filter chain by the cert
+		// if a filter chain with that cert already exists, just add the vhost name to the existing list
+		fcExists := false
 		if vh.Secret != nil {
-			fc.TlsContext = envoy.DownstreamTLSContext(envoy.Secretname(vh.Secret), vh.MinProtoVersion, alpnProtos...)
+			secretName := envoy.Secretname(vh.Secret)
+			for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
+				if envoy.RetrieveSecretName(fc.TlsContext) == secretName {
+					fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
+					fcExists = true
+					break
+				}
+			}
 		}
 
-		v.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fc)
+		if !fcExists {
+			fc := listener.FilterChain{
+				FilterChainMatch: &listener.FilterChainMatch{
+					ServerNames: []string{vh.VirtualHost.Name},
+				},
+				Filters: filters,
+			}
+
+			// attach certificate data to this listener if provided.
+			if vh.Secret != nil {
+				fc.TlsContext = envoy.DownstreamTLSContext(envoy.Secretname(vh.Secret), vh.MinProtoVersion, alpnProtos...)
+			}
+
+			v.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fc)
+		}
+
 	default:
 		// recurse
 		vertex.Visit(v.visit)
