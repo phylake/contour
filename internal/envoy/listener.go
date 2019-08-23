@@ -107,13 +107,53 @@ func HTTPConnectionManager(routename, accessLogPath string) listener.Filter {
 						},
 					},
 				},
-				HttpFilters: []*http.HttpFilter{{
-					Name: util.Gzip,
-				}, {
-					Name: util.GRPCWeb,
-				}, {
-					Name: util.Router,
-				}},
+				GenerateRequestId:   &types.BoolValue{Value: false},
+				MaxRequestHeadersKb: &types.UInt32Value{Value: 64},
+				HttpFilters: []*http.HttpFilter{
+					{
+						Name: "envoy.filters.http.ip_allow_deny",
+					},
+					// {
+					// 	Name: util.HealthCheck,
+					// 	ConfigType: &http.HttpFilter_Config{&types.Struct{
+					// 		Fields: map[string]*types.Value{
+					// 			"pass_through_mode": {Kind: &types.Value_BoolValue{BoolValue: false}},
+					// 			"headers": {Kind: &types.Value_ListValue{&types.ListValue{
+					// 				Values: []*types.Value{
+					// 					{Kind: &types.Value_StructValue{StructValue: &types.Struct{
+					// 						Fields: map[string]*types.Value{
+					// 							"name":        {Kind: &types.Value_StringValue{":path"}},
+					// 							"exact_match": {Kind: &types.Value_StringValue{"/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
+					// 						},
+					// 					}}},
+					// 				},
+					// 			}}},
+					// 		},
+					// 	}},
+					// },
+					{
+						Name: "envoy.filters.http.health_check_simple",
+						ConfigType: &http.HttpFilter_Config{&types.Struct{
+							Fields: map[string]*types.Value{
+								"path": {Kind: &types.Value_StringValue{"/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
+							},
+						}},
+					},
+					{
+						Name: "envoy.filters.http.header_size",
+						ConfigType: &http.HttpFilter_Config{&types.Struct{
+							Fields: map[string]*types.Value{
+								// https://github.com/phylake/envoy/commit/70e6900f46273472bf3932421b01691551df8362
+								"max_bytes": {Kind: &types.Value_NumberValue{64 * 1024}},
+							},
+						}},
+					}, {
+						Name: util.Gzip,
+					}, {
+						Name: util.GRPCWeb,
+					}, {
+						Name: util.Router,
+					}},
 				HttpProtocolOptions: &core.Http1ProtocolOptions{
 					// Enable support for HTTP/1.0 requests that carry
 					// a Host: header. See #537.
@@ -122,7 +162,6 @@ func HTTPConnectionManager(routename, accessLogPath string) listener.Filter {
 				AccessLog:        FileAccessLog(accessLogPath),
 				UseRemoteAddress: &types.BoolValue{Value: true}, // TODO(jbeda) should this ever be false?
 				NormalizePath:    &types.BoolValue{Value: true},
-				IdleTimeout:      idleTimeout(HTTPDefaultIdleTimeout),
 			}),
 		},
 	}

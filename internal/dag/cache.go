@@ -69,7 +69,7 @@ func (kc *KubernetesCache) Insert(obj interface{}) bool {
 		return kc.serviceTriggersRebuild(obj)
 	case *v1beta1.Ingress:
 		class := getIngressClassAnnotation(obj.Annotations)
-		if class != "" && class != kc.ingressClass() {
+		if class == "" || class != kc.ingressClass() {
 			return false
 		}
 		m := Meta{name: obj.Name, namespace: obj.Namespace}
@@ -80,7 +80,7 @@ func (kc *KubernetesCache) Insert(obj interface{}) bool {
 		return true
 	case *ingressroutev1.IngressRoute:
 		class := getIngressClassAnnotation(obj.Annotations)
-		if class != "" && class != kc.ingressClass() {
+		if class == "" || class != kc.ingressClass() {
 			return false
 		}
 		m := Meta{name: obj.Name, namespace: obj.Namespace}
