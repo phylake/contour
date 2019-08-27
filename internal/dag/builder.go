@@ -529,13 +529,23 @@ func (b *Builder) processRoutes(ir *ingressroutev1.IngressRoute, prefixMatch str
 			r := &PrefixRoute{
 				Prefix: route.Match,
 				Route: Route{
-					Websocket:     route.EnableWebsockets,
-					HTTPSUpgrade:  routeEnforceTLS(enforceTLS, route.PermitInsecure && !b.DisablePermitInsecure),
-					PrefixRewrite: route.PrefixRewrite,
-					TimeoutPolicy: timeoutPolicy(route.TimeoutPolicy),
-					RetryPolicy:   retryPolicy(route.RetryPolicy),
+					Websocket:       route.EnableWebsockets,
+					HTTPSUpgrade:    routeEnforceTLS(enforceTLS, route.PermitInsecure && !b.DisablePermitInsecure),
+					PrefixRewrite:   route.PrefixRewrite,
+					TimeoutPolicy:   timeoutPolicy(route.TimeoutPolicy),
+					RetryPolicy:     retryPolicy(route.RetryPolicy),
+					HashPolicy:      route.HashPolicy,
+					PerFilterConfig: route.PerFilterConfig,
 				},
 			}
+			// TODO(bcook) deprecate this
+			if route.IdleTimeout != nil {
+				r.IdleTimeout = &route.IdleTimeout.Duration
+			}
+			if route.Timeout != nil {
+				r.Timeout = &route.Timeout.Duration
+			}
+
 			for _, service := range route.Services {
 				if service.Port < 1 || service.Port > 65535 {
 					b.setStatus(Status{Object: ir, Status: StatusInvalid, Description: fmt.Sprintf("route %q: service %q: port must be in the range 1-65535", route.Match, service.Name), Vhost: host})
