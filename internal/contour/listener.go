@@ -330,6 +330,7 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
 				if envoy.RetrieveSecretName(fc.TlsContext) == secretName {
 					fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
+					sort.Strings(fc.FilterChainMatch.ServerNames)
 					fcExists = true
 					break
 				}
@@ -346,6 +347,7 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			)
 
 			v.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fc)
+			sort.Stable(filterChainTLSBySecretName(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains))
 		}
 	default:
 		// recurse

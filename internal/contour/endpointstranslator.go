@@ -165,6 +165,7 @@ func (e *EndpointsTranslator) recomputeClusterLoadAssignment(oldep, newep *v1.En
 				}
 				clas[portname] = cla
 			}
+			sort.Stable(endpointByIP(s.Addresses))
 			for _, a := range s.Addresses {
 				addr := envoy.SocketAddress(a.IP, int(p.Port))
 				cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, envoy.LBEndpoint(addr))
