@@ -153,9 +153,18 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 				resources = r.Query(req.ResourceNames)
 			}
 
+			versionInfo := hash(resources)
+
 			// Skip this response entirely if we already sent the exact same data previously
-			if cmp.Equal(previous_resources, resources, cmpopts.SortSlices(lessProtoMessage)) {
+			if versionInfo == req.VersionInfo {
 				log.WithField("count", len(resources)).Info("skip")
+				goto WaitForChange
+			}
+
+			// Keeping this for now to ensure the version-info hashing can take over
+			// Will be removed eventually. TODO(lrouquet)
+			if cmp.Equal(previous_resources, resources, cmpopts.SortSlices(lessProtoMessage)) {
+				log.WithField("count", len(resources)).Info("skip_legacy")
 				goto WaitForChange
 			}
 
@@ -165,7 +174,7 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 			}
 
 			resp := &v2.DiscoveryResponse{
-				VersionInfo: strconv.Itoa(last),
+				VersionInfo: versionInfo,
 				Resources:   any,
 				TypeUrl:     r.TypeURL(),
 				Nonce:       strconv.Itoa(last),
@@ -248,7 +257,7 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 			if err := st.Send(resp); err != nil {
 				return err
 			}
-			log.WithField("count", len(resources)).WithField("version_info_resp", last).Info("response")
+			log.WithField("count", len(resources)).WithField("version_info_resp", versionInfo).Info("response")
 
 			// cache what was sent
 			cacheData(stId, resources)
