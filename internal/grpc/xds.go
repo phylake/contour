@@ -186,15 +186,11 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 				// Since AfterFunc() is not perfectly accurate, we add 1s to now (we already waited 12min, so 1s is insignificant)
 				// This is to ensure we do send the update when the timer triggered
 				if earliestNextUpdate.After(now.Add(1 * time.Second)) {
-					fmt.Println("*** LDS NEED TO WAIT ***", last, earliestNextUpdate, now)
 					// Ok, we need to wait - check if the timer already started
 					if ldsTimer == nil {
-						fmt.Println("*** LDS -- CREATING TIMER ***")
 						waitDuration := time.Until(earliestNextUpdate)
 						manualTrigger := func() {
-							// Wait an extra 1s before triggering: AfterFunc() is not really accurate
-							fmt.Println("*** TIMER TRIGGERED ***", last)
-							ch <- last // TODO: figure out what to send here
+							ch <- last
 						}
 						ldsTimer = time.AfterFunc(waitDuration, manualTrigger)
 					}
@@ -202,7 +198,6 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 					goto WaitForChange
 				}
 				// Either the last response was sent long ago, or the timer triggered: reset it anyhow
-				fmt.Println("*** LDS: NO WAITING OR TIMER EXPIRED ***")
 				ldsTimer = nil
 			}
 
