@@ -168,20 +168,23 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 			// * skip the response (so we can receive further cache updates)
 			// * manually trigger the update after the wait time
 			if req.TypeUrl == "type.googleapis.com/envoy.api.v2.Listener" {
-				// Wait at least 12min since the last update
-				earliestNextUpdate := reqTS.Add(12 * time.Minute)
-				// Since AfterFunc() is not perfectly accurate, we add 1s to now (we already waited 12min, so 1s is insignificant)
+				// Wait at least 15min since the last update
+				earliestNextUpdate := reqTS.Add(15 * time.Minute)
+				// Since AfterFunc() triggers based on earliestNextUpdate itself built from an Epoch time,
+				// we add 1s to now (we already waited 15min, so 1s is insignificant!)
 				// This is to ensure we do send the update when the timer triggered
 				if earliestNextUpdate.After(now.Add(1 * time.Second)) {
 					// Ok, we need to wait - check if the timer already started
 					if ldsTimer == nil {
 						waitDuration := time.Until(earliestNextUpdate)
 						manualTrigger := func() {
-							ch <- last
+							log.WithField("until", earliestNextUpdate).WithField("now", time.Now().UTC().Round(time.Second)).Info("lds_delay_expired")
+							ch <- last //this will be the value when we created the closure
 						}
 						ldsTimer = time.AfterFunc(waitDuration, manualTrigger)
 					}
 					// now wait
+					log.WithField("until", earliestNextUpdate).WithField("now", now.UTC().Round(time.Second)).Info("delay_lds")
 					goto WaitForChange
 				}
 				// Either the last response was sent long ago, or the timer triggered: reset it anyhow
