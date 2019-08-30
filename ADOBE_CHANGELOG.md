@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.15.0-1.13.0-adobe
+
+- xDS version_info now a hash of the xDS response + a timestamp
+- prevent stacking LDS updates
+
 ## v0.15.0-1.12.0-adobe
 
 - built from contour v0.15.0
