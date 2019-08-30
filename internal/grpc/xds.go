@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -130,6 +131,9 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 			NodeId:  req.Node.Id,
 		}
 
+		// timer to prevent stacking LDS updates
+		var ldsTimer *time.Timer
+
 	WaitForChange:
 		log.Info("stream_wait")
 
@@ -153,10 +157,13 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 				resources = r.Query(req.ResourceNames)
 			}
 
-			versionInfo := hash(resources)
+			// parse out the request VersionInfo {hash},{timestamp}
+			now := time.Now()
+			reqHash, reqTS := splitVersionInfo(req.VersionInfo)
+			resHash, resTS := hash(resources), now
 
 			// Skip this response entirely if we already sent the exact same data previously
-			if versionInfo == req.VersionInfo {
+			if resHash == reqHash {
 				log.WithField("count", len(resources)).Info("skip")
 				goto WaitForChange
 			}
@@ -168,13 +175,44 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 				goto WaitForChange
 			}
 
+			// Check for stacking LDS update
+			// This is a long wait time, so ensure we're sending the latest LDS config
+			// Strategy:
+			// * skip the response (so we can receive further cache updates)
+			// * manually trigger the update after the wait time
+			if req.TypeUrl == "type.googleapis.com/envoy.api.v2.Listener" {
+				// Wait at least 12min since the last update
+				earliestNextUpdate := reqTS.Add(12 * time.Minute)
+				// Since AfterFunc() is not perfectly accurate, we add 1s to now (we already waited 12min, so 1s is insignificant)
+				// This is to ensure we do send the update when the timer triggered
+				if earliestNextUpdate.After(now.Add(1 * time.Second)) {
+					fmt.Println("*** LDS NEED TO WAIT ***", last, earliestNextUpdate, now)
+					// Ok, we need to wait - check if the timer already started
+					if ldsTimer == nil {
+						fmt.Println("*** LDS -- CREATING TIMER ***")
+						waitDuration := time.Until(earliestNextUpdate)
+						manualTrigger := func() {
+							// Wait an extra 1s before triggering: AfterFunc() is not really accurate
+							fmt.Println("*** TIMER TRIGGERED ***", last)
+							ch <- last // TODO: figure out what to send here
+						}
+						ldsTimer = time.AfterFunc(waitDuration, manualTrigger)
+					}
+					// now wait
+					goto WaitForChange
+				}
+				// Either the last response was sent long ago, or the timer triggered: reset it anyhow
+				fmt.Println("*** LDS: NO WAITING OR TIMER EXPIRED ***")
+				ldsTimer = nil
+			}
+
 			any, err := toAny(r.TypeURL(), resources)
 			if err != nil {
 				return err
 			}
 
 			resp := &v2.DiscoveryResponse{
-				VersionInfo: versionInfo,
+				VersionInfo: joinVersionInfo(resHash, resTS),
 				Resources:   any,
 				TypeUrl:     r.TypeURL(),
 				Nonce:       strconv.Itoa(last),
@@ -257,7 +295,7 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 			if err := st.Send(resp); err != nil {
 				return err
 			}
-			log.WithField("count", len(resources)).WithField("version_info_resp", versionInfo).Info("response")
+			log.WithField("count", len(resources)).WithField("version_info_resp", resp.VersionInfo).Info("response")
 
 			// cache what was sent
 			cacheData(stId, resources)
