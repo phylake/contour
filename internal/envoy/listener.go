@@ -147,13 +147,11 @@ func HTTPConnectionManager(routename, accessLogPath string) listener.Filter {
 								"max_bytes": {Kind: &types.Value_NumberValue{64 * 1024}},
 							},
 						}},
-					}, {
-						Name: util.Gzip,
-					}, {
-						Name: util.GRPCWeb,
-					}, {
+					},
+					{
 						Name: util.Router,
-					}},
+					},
+				},
 				HttpProtocolOptions: &core.Http1ProtocolOptions{
 					// Enable support for HTTP/1.0 requests that carry
 					// a Host: header. See #537.
