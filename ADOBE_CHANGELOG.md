@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.15.0-1.14.0-adobe
+
+- configurable tracing on HTTP connection manager
+- configurable TCP keepalives on downstream connections
+
 ## v0.15.0-1.13.0-adobe
 
 - remove gzip filter
