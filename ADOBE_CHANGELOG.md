@@ -16,9 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
-## v0.15.3-1.14.0-adobe
+## v0.15.3-1.14.1-adobe
 
 - built from contour v0.15.3
+- disable TLS certificate validation
 
 ## v0.15.0-1.14.0-adobe
 

@@ -32,20 +32,22 @@ func isValidSecret(secret *v1.Secret) (bool, error) {
 		// and secrets with a ca.crt key.
 		return false, nil
 	}
-	for key, data := range secret.Data {
-		switch key {
-		case v1.TLSCertKey:
-			if err := validateCertificate(data); err != nil {
-				return false, err
-			}
-		case v1.TLSPrivateKeyKey:
-			if err := validatePrivateKey(data); err != nil {
-				return false, err
-			}
-		case "ca.crt":
-			// nothing yet, see #1644
-		}
-	}
+	// Adobe - disable cert validation for now
+	// https://github.com/projectcontour/contour/issues/1809
+	// for key, data := range secret.Data {
+	// 	switch key {
+	// 	case v1.TLSCertKey:
+	// 		if err := validateCertificate(data); err != nil {
+	// 			return false, err
+	// 		}
+	// 	case v1.TLSPrivateKeyKey:
+	// 		if err := validatePrivateKey(data); err != nil {
+	// 			return false, err
+	// 		}
+	// 	case "ca.crt":
+	// 		// nothing yet, see #1644
+	// 	}
+	// }
 	return true, nil
 }
 
