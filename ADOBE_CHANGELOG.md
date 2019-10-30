@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.15.0-1.14.1-adobe
+
+- add gRPC keepalives for Contour -> Envoy
+- upgrade go to 1.12.12
+
 ## v0.15.0-1.14.0-adobe
 
 - configurable tracing on HTTP connection manager
@@ -24,7 +29,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 ## v0.15.0-1.13.0-adobe
 
 - remove gzip filter
-- remvoe gRPC-web filter
+- remove gRPC-web filter
 
 ## v0.15.0-1.12.0-adobe
 
