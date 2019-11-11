@@ -769,8 +769,8 @@ func MinProtoVersion(version string) auth.TlsParameters_TlsProtocol {
 	case "1.2":
 		return auth.TlsParameters_TLSv1_2
 	default:
-		// any other value is interpreted as TLS/1.1
-		return auth.TlsParameters_TLSv1_1
+		// any other value is interpreted as TLS/1.2
+		return auth.TlsParameters_TLSv1_2
 	}
 }
 
