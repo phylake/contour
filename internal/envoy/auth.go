@@ -19,9 +19,12 @@ import (
 )
 
 var (
-	// This is the list of ciphers used by Adobe's patched version of Contour.
-	// Available ciphers are listed in OpenSSL documentation:
-	// https://www.openssl.org/docs/man1.0.2/man1/ciphers.html
+	// This is the list of ciphers used by Adobe's patched version of Contour
+	// for TLS 1.1 and 1.2. TLS 1.3 does not allow cipherlist configuration.
+	//
+	// Available ciphers are listed in IANA and OpenSSL/BoringSSL documentation:
+	// https://www.iana.org/assignments/tls-parameters/tls-parameters.txt
+	// https://github.com/google/boringssl/blob/master/include/openssl/tls1.h
 	//
 	// The list uses OpenSSL/BoringSSL operators:
 	// https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#Cipher-suite-configuration
