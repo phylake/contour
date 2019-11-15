@@ -19,28 +19,57 @@ import (
 )
 
 var (
-	// This is the list of default ciphers used by contour 1.9.1. A handful are
-	// commented out, as they're arguably less secure. They're also unnecessary
-	// - most of the clients that might need to use the commented ciphers are
-	// unable to connect without TLS 1.0, which contour never enables.
+	// This is the list of ciphers used by Adobe's patched version of Contour.
+	// Available ciphers are listed in OpenSSL documentation:
+	// https://www.openssl.org/docs/man1.0.2/man1/ciphers.html
 	//
-	// This list is ignored if the client and server negotiate TLS 1.3.
+	// The list uses OpenSSL/BoringSSL operators:
+	// https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#Cipher-suite-configuration
+	// Ciphers are ordered by preference; "[CIPHER1|CIPHER2]" means CIPHER1 and
+	// CIPHER2 are of equal preference and the client may choose either as
+	// they prefer.
 	//
-	// The commented ciphers are left in place to simplify updating this list for future
-	// versions of envoy.
+	// The Mozilla SSL Configuration Generator's "Old" Configuration is used as
+	// a general guideline.
+	// https://ssl-config.mozilla.org/#config=old
+	//
+	// Elliptic Curve (EC) ciphers are preferred as the consensus as of
+	// November 2019 is that elliptic curve ciphers are more difficult to
+	// attack than prime factorization ciphers.
+	// https://blog.cloudflare.com/a-relatively-easy-to-understand-primer-on-elliptic-curve-cryptography
+	//
+	// RSA ciphers are supported to allow backwards compatibility with old
+	// systems. Notably, old Java clients use a cipherlist shipped with the
+	// JVM which may be very outdated.
+	//
+	// DES ciphers are removed as DES is considered insecure and was never
+	// intended for protecting secret data.
+	//
+	// TLS 1.0 and 1.0 extension ciphers are excluded.
 	ciphers = []string{
-		"[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]",
-		"[ECDHE-RSA-AES128-GCM-SHA256|ECDHE-RSA-CHACHA20-POLY1305]",
-		"ECDHE-ECDSA-AES128-SHA",
-		"ECDHE-RSA-AES128-SHA",
-		//"AES128-GCM-SHA256",
-		//"AES128-SHA",
+		"ECDHE-ECDSA-AES128-GCM-SHA256",
+		"ECDHE-RSA-AES128-GCM-SHA256",
 		"ECDHE-ECDSA-AES256-GCM-SHA384",
 		"ECDHE-RSA-AES256-GCM-SHA384",
+		"ECDHE-ECDSA-CHACHA20-POLY1305",
+		"ECDHE-RSA-CHACHA20-POLY1305",
+		"DHE-RSA-AES128-GCM-SHA256",
+		"DHE-RSA-AES256-GCM-SHA384",
+		"DHE-RSA-CHACHA20-POLY1305",
+		"ECDHE-ECDSA-AES128-SHA256",
+		"ECDHE-RSA-AES128-SHA256",
+		"ECDHE-ECDSA-AES128-SHA",
+		"ECDHE-RSA-AES128-SHA",
+		"ECDHE-ECDSA-AES256-SHA384",
+		"ECDHE-RSA-AES256-SHA384",
 		"ECDHE-ECDSA-AES256-SHA",
 		"ECDHE-RSA-AES256-SHA",
-		//"AES256-GCM-SHA384",
-		//"AES256-SHA",
+		"DHE-RSA-AES128-SHA256",
+		"DHE-RSA-AES256-SHA256",
+		"AES128-GCM-SHA256",
+		"AES256-GCM-SHA384",
+		"AES128-SHA256",
+		"AES256-SHA256",
 	}
 )
 
