@@ -18,7 +18,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 ## v0.15.0-2.1.0-adobe
 
-- curate TLS cipherlist to belance security and compatibility
+- curate TLS cipherlist to balance security and compatibility
 
 ## v0.15.0-2.0.0-adobe
 
