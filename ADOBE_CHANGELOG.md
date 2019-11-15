@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.15.0-2.0.0-adobe
+
+- disable TLS 1.1
+
 ## v0.15.0-1.14.1-adobe
 
 - add gRPC keepalives for Contour -> Envoy

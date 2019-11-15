@@ -2004,7 +2004,7 @@ func TestDAGInsert(t *testing.T) {
 								},
 							},
 							Secret:          secret(sec1),
-							MinProtoVersion: auth.TlsParameters_TLSv1_1,
+							MinProtoVersion: auth.TlsParameters_TLSv1_2,
 						},
 					),
 				},
@@ -4252,7 +4252,7 @@ func securevirtualhost(name string, sec *v1.Secret, v ...Vertex) *SecureVirtualH
 			Name:   name,
 			routes: routes(v...),
 		},
-		MinProtoVersion: auth.TlsParameters_TLSv1_1,
+		MinProtoVersion: auth.TlsParameters_TLSv1_2,
 		Secret:          secret(sec),
 	}
 }
