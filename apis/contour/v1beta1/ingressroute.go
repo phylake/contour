@@ -164,13 +164,6 @@ type Service struct {
 	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 }
 
-func (recv Service) IdleTimeoutToDuration() *time.Duration {
-	if recv.IdleTimeout == nil {
-		return nil
-	}
-	return &recv.IdleTimeout.Duration
-}
-
 // Delegate allows for delegating VHosts to other IngressRoutes
 type Delegate struct {
 	// Name of the IngressRoute

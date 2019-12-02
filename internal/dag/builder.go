@@ -568,13 +568,17 @@ func (b *Builder) processRoutes(ir *ingressroutev1.IngressRoute, prefixMatch str
 					// we can only validate TLS connections to services that talk TLS
 					uv = b.lookupUpstreamValidation(ir, host, route, service, ir.Namespace)
 				}
-				r.Clusters = append(r.Clusters, &Cluster{
+				c := &Cluster{
 					Upstream:             s,
 					LoadBalancerStrategy: service.Strategy,
 					Weight:               service.Weight,
 					HealthCheck:          service.HealthCheck,
 					UpstreamValidation:   uv,
-				})
+				}
+				if service.IdleTimeout != nil {
+					c.IdleTimeout = &service.IdleTimeout.Duration
+				}
+				r.Clusters = append(r.Clusters, c)
 			}
 
 			b.lookupVirtualHost(host).addRoute(r)
