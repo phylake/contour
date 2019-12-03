@@ -328,7 +328,7 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 		if vh.Secret != nil {
 			secretName := envoy.Secretname(vh.Secret)
 			for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
-				if envoy.RetrieveSecretName(fc.TlsContext) == secretName {
+				if fc.TlsContext != nil && envoy.RetrieveSecretName(fc.TlsContext) == secretName {
 					fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
 					fcExists = true
 					break
