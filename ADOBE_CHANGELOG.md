@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v0.15.0-2.0.2-adobe
+
+- fix issue where a TLS passthrough would cause contour to crash
+
 ## v0.15.0-2.0.1-adobe
 
 - upstream idle timeout was not being configured in Envoy
