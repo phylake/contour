@@ -89,7 +89,7 @@ type Route struct {
 
 	HashPolicy []ingressroutev1.HashPolicy
 
-	PerFilterConfig map[string]interface{}
+	PerFilterConfig *ingressroutev1.PerFilterConfig
 
 	IdleTimeout *time.Duration
 }

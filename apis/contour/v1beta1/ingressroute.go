@@ -108,6 +108,27 @@ type HashPolicy struct {
 	Terminal bool `json:"terminal,omitempty"`
 }
 
+type PerFilterConfig struct {
+	IpAllowDeny *IpAllowDenyCidrs `json:"envoy.filters.http.ip_allow_deny,omitempty"`
+	HeaderSize  *HeaderSize       `json:"envoy.filters.http.header_size,omitempty"`
+}
+
+type IpAllowDenyCidrs struct {
+	AllowCidrs []Cidr `json:"allow_cidrs,omitempty"`
+	DenyCidrs  []Cidr `json:"deny_cidrs,omitempty"`
+}
+
+type Cidr struct {
+	AddressPrefix *string `json:"address_prefix,omitempty"`
+	PrefixLen     *int    `json:"prefix_len,omitempty"`
+}
+
+type HeaderSize struct {
+	HeaderSize struct {
+		MaxBytes *int `json:"max_bytes,omitempty"`
+	} `json:"header_size,omitempty"`
+}
+
 // Route contains the set of routes for a virtual host
 type Route struct {
 	// Match defines the prefix match
@@ -130,7 +151,7 @@ type Route struct {
 
 	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
 
-	PerFilterConfig map[string]interface{} `json:"perFilterConfig,omitempty"`
+	PerFilterConfig *PerFilterConfig `json:"perFilterConfig,omitempty"`
 
 	Timeout *Duration `json:"timeout,omitempty"`
 

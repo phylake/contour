@@ -1,18 +1,24 @@
 package envoy
 
 import (
+	"encoding/json"
+
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/gogo/protobuf/types"
 	"github.com/heptio/contour/internal/dag"
 )
 
 func PerFilterConfig(r *dag.Route) (conf map[string]*types.Struct) {
-	if len(r.PerFilterConfig) == 0 {
+	if r.PerFilterConfig == nil {
 		return
 	}
 
 	conf = make(map[string]*types.Struct)
-	for k, v := range r.PerFilterConfig {
+	var inInterface map[string]interface{}
+	inrec, _ := json.Marshal(r.PerFilterConfig)
+	json.Unmarshal(inrec, &inInterface)
+
+	for k, v := range inInterface {
 		s := new(types.Struct)
 		conf[k] = s
 
