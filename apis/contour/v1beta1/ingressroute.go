@@ -48,6 +48,14 @@ type Route struct {
 	TimeoutPolicy *projcontour.TimeoutPolicy `json:"timeoutPolicy,omitempty"`
 	// // The retry policy for this route
 	RetryPolicy *projcontour.RetryPolicy `json:"retryPolicy,omitempty"`
+
+	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
+
+	PerFilterConfig *PerFilterConfig `json:"perFilterConfig,omitempty"`
+
+	Timeout *Duration `json:"timeout,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 }
 
 // TCPProxy contains the set of services to proxy TCP connections.
@@ -73,6 +81,8 @@ type Service struct {
 	Strategy string `json:"strategy,omitempty"`
 	// UpstreamValidation defines how to verify the backend service's certificate
 	UpstreamValidation *projcontour.UpstreamValidation `json:"validation,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 }
 
 // Delegate allows for delegating VHosts to other IngressRoutes

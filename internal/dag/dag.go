@@ -19,7 +19,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"github.com/golang/protobuf/ptypes/duration"
+	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -83,6 +85,14 @@ type Route struct {
 
 	// Indicates that during forwarding, the matched prefix (or path) should be swapped with this value
 	PrefixRewrite string
+
+	Timeout *duration.Duration
+
+	HashPolicy []ingressroutev1.HashPolicy
+
+	PerFilterConfig *ingressroutev1.PerFilterConfig
+
+	IdleTimeout *duration.Duration
 }
 
 // TimeoutPolicy defines the timeout request/idle
@@ -302,6 +312,8 @@ type Cluster struct {
 
 	// Cluster health check policy.
 	*HealthCheckPolicy
+
+	IdleTimeout *duration.Duration
 }
 
 func (c Cluster) Visit(f func(Vertex)) {
