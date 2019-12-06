@@ -194,11 +194,8 @@ type ListenerCache struct {
 
 // NewListenerCache returns an instance of a ListenerCache
 func NewListenerCache(address string, port int) ListenerCache {
-	stats := envoy.StatsListener(address, port)
 	return ListenerCache{
-		staticValues: map[string]*v2.Listener{
-			stats.Name: stats,
-		},
+		staticValues: map[string]*v2.Listener{},
 	}
 }
 
@@ -275,7 +272,7 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 			ENVOY_HTTPS_LISTENER: envoy.Listener(
 				ENVOY_HTTPS_LISTENER,
 				lvc.httpsAddress(), lvc.httpsPort(),
-				secureProxyProtocol(lvc.UseProxyProto),
+				append(secureProxyProtocol(lvc.UseProxyProto), CustomListenerFilters()...),
 			),
 		},
 	}
@@ -286,7 +283,7 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 		lv.listeners[ENVOY_HTTP_LISTENER] = envoy.Listener(
 			ENVOY_HTTP_LISTENER,
 			lvc.httpAddress(), lvc.httpPort(),
-			proxyProtocol(lvc.UseProxyProto),
+			append(proxyProtocol(lvc.UseProxyProto), CustomListenerFilters()...),
 			envoy.HTTPConnectionManager(ENVOY_HTTP_LISTENER, lvc.newInsecureAccessLog()),
 		)
 
@@ -349,15 +346,31 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			alpnProtos = nil // do not offer ALPN
 		}
 
-		fc := envoy.FilterChainTLS(
-			vh.VirtualHost.Name,
-			vh.Secret,
-			filters,
-			max(v.ListenerVisitorConfig.minProtoVersion(), vh.MinProtoVersion), // choose the higher of the configured or requested tls version
-			alpnProtos...,
-		)
+		// Group filter chain by the cert
+		// if a filter chain with that cert already exists, just add the vhost name to the existing list
+		fcExists := false
+		if vh.Secret != nil {
+			secretName := envoy.Secretname(vh.Secret)
+			for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
+				if fc.TlsContext != nil && envoy.RetrieveSecretName(fc.TlsContext) == secretName {
+					fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
+					fcExists = true
+					break
+				}
+			}
+		}
 
-		v.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fc)
+		if !fcExists {
+			fc := envoy.FilterChainTLS(
+				vh.VirtualHost.Name,
+				vh.Secret,
+				filters,
+				max(v.ListenerVisitorConfig.minProtoVersion(), vh.MinProtoVersion), // choose the higher of the configured or requested tls version
+				alpnProtos...,
+			)
+
+			v.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fc)
+		}
 	default:
 		// recurse
 		vertex.Visit(v.visit)

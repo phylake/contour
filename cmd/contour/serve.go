@@ -265,6 +265,10 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	eh.Metrics = metrics
 	eh.CacheHandler.Metrics = metrics
 
+	// step 12.5. synchronous cache init (Adobe)
+	err = initCache(client, contourClient, eh, et)
+	check(err)
+
 	// step 13. create grpc handler and register with workgroup.
 	g.Add(func(stop <-chan struct{}) error {
 		log := log.WithField("context", "grpc")

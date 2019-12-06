@@ -52,6 +52,7 @@ func Listener(name, address string, port int, lf []*envoy_api_v2_listener.Listen
 		Name:            name,
 		Address:         SocketAddress(address, port),
 		ListenerFilters: lf,
+		SocketOptions:   socketOptions(),
 	}
 	if len(filters) > 0 {
 		l.FilterChains = append(
@@ -92,13 +93,33 @@ func HTTPConnectionManager(routename string, accesslogger []*accesslog.AccessLog
 						},
 					},
 				},
-				HttpFilters: []*http.HttpFilter{{
-					Name: wellknown.Gzip,
-				}, {
-					Name: wellknown.GRPCWeb,
-				}, {
-					Name: wellknown.Router,
-				}},
+				GenerateRequestId:   &types.BoolValue{Value: false},
+				MaxRequestHeadersKb: &types.UInt32Value{Value: 64},
+				HttpFilters: []*http.HttpFilter{
+					{
+						Name: "envoy.filters.http.ip_allow_deny",
+					},
+					{
+						Name: "envoy.filters.http.health_check_simple",
+						ConfigType: &http.HttpFilter_Config{&types.Struct{
+							Fields: map[string]*types.Value{
+								"path": {Kind: &types.Value_StringValue{"/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
+							},
+						}},
+					},
+					{
+						Name: "envoy.filters.http.header_size",
+						ConfigType: &http.HttpFilter_Config{&types.Struct{
+							Fields: map[string]*types.Value{
+								// https://github.com/phylake/envoy/commit/70e6900f46273472bf3932421b01691551df8362
+								"max_bytes": {Kind: &types.Value_NumberValue{64 * 1024}},
+							},
+						}},
+					},
+					{
+						Name: util.Router,
+					},
+				},
 				HttpProtocolOptions: &envoy_api_v2_core.Http1ProtocolOptions{
 					// Enable support for HTTP/1.0 requests that carry
 					// a Host: header. See #537.
@@ -107,13 +128,7 @@ func HTTPConnectionManager(routename string, accesslogger []*accesslog.AccessLog
 				AccessLog:        accesslogger,
 				UseRemoteAddress: protobuf.Bool(true),
 				NormalizePath:    protobuf.Bool(true),
-				// Sets the idle timeout for HTTP connections to 60 seconds.
-				// This is chosen as a rough default to stop idle connections wasting resources,
-				// without stopping slow connections from being terminated too quickly.
-				IdleTimeout: protobuf.Duration(60 * time.Second),
-
-				// issue #1487 pass through X-Request-Id if provided.
-				PreserveExternalRequestId: true,
+				Tracing:          tracing(),
 			}),
 		},
 	}

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/gogo/protobuf/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/projectcontour/contour/internal/dag"
 	"github.com/projectcontour/contour/internal/protobuf"
@@ -519,6 +520,61 @@ func TestUpgradeHTTPS(t *testing.T) {
 		Redirect: &envoy_api_v2_route.RedirectAction{
 			SchemeRewriteSpecifier: &envoy_api_v2_route.RedirectAction_HttpsRedirect{
 				HttpsRedirect: true,
+			},
+		},
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestPerFilterConfig(t *testing.T) {
+	msi := map[string]interface{}{
+		"filter": map[string]interface{}{
+			"map": map[string]interface{}{
+				"float": 9.0,
+				"bool":  true,
+			},
+			"list": []interface{}{
+				"string",
+			},
+		},
+	}
+	got := make(map[string]*types.Struct)
+	for k, v := range msi {
+		s := new(types.Struct)
+		got[k] = s
+		recurseIface(s, v)
+	}
+	want := map[string]*types.Struct{
+		"filter": {
+			Fields: map[string]*types.Value{
+				"map": {
+					Kind: &types.Value_StructValue{
+						&types.Struct{
+							Fields: map[string]*types.Value{
+								"float": {
+									Kind: &types.Value_NumberValue{9.0},
+								},
+								"bool": {
+									Kind: &types.Value_BoolValue{true},
+								},
+							},
+						},
+					},
+				},
+				"list": {
+					Kind: &types.Value_ListValue{
+						&types.ListValue{
+							Values: []*types.Value{
+								{
+									Kind: &types.Value_StringValue{"string"},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
