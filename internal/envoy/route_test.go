@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/gogo/protobuf/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/heptio/contour/internal/dag"
 	v1 "k8s.io/api/core/v1"
@@ -491,7 +492,6 @@ func TestUpgradeHTTPS(t *testing.T) {
 }
 
 func TestPerFilterConfig(t *testing.T) {
-	r := new(dag.Route)
 	msi := map[string]interface{}{
 		"filter": map[string]interface{}{
 			"map": map[string]interface{}{
@@ -503,8 +503,12 @@ func TestPerFilterConfig(t *testing.T) {
 			},
 		},
 	}
-	r.PerFilterConfig = msi
-	got := PerFilterConfig(r)
+	got := make(map[string]*types.Struct)
+	for k, v := range msi {
+		s := new(types.Struct)
+		got[k] = s
+		recurseIface(s, v)
+	}
 	want := map[string]*types.Struct{
 		"filter": {
 			Fields: map[string]*types.Value{
