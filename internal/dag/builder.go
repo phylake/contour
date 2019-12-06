@@ -741,10 +741,11 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 		}
 
 		if dest, ok := b.Source.ingressroutes[Meta{name: route.Delegate.Name, namespace: namespace}]; ok {
-			if dest.Spec.VirtualHost != nil {
-				sw.SetInvalid("root ingressroute cannot delegate to another root ingressroute")
-				return
-			}
+			// Adobe - allow root to root delegation
+			// if dest.Spec.VirtualHost != nil {
+			// 	sw.SetInvalid("root ingressroute cannot delegate to another root ingressroute")
+			// 	return
+			// }
 
 			// dest is not an orphaned ingress route, as there is an IR that points to it
 			delete(b.orphaned, Meta{name: dest.Name, namespace: dest.Namespace})

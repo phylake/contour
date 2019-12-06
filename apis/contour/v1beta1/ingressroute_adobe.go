@@ -10,7 +10,6 @@ import (
 )
 
 type Duration struct {
-	// time.Duration
 	duration.Duration
 }
 
@@ -27,12 +26,11 @@ func (recv *Duration) UnmarshalJSON(bs []byte) (err error) {
 
 	switch value := iface.(type) {
 	case float64:
-		// recv.Duration = time.Duration(value)
 		recv.Duration = *protobuf.Duration(time.Duration(value))
 	case string:
-		// recv.Duration, err = time.ParseDuration(value)
-		d, err := time.ParseDuration(value)
-		if err != nil {
+		var d time.Duration
+		d, err = time.ParseDuration(value)
+		if err == nil {
 			recv.Duration = *protobuf.Duration(d)
 		}
 	default:
