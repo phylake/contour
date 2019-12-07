@@ -52,7 +52,7 @@ func init() {
 
 	if len(structFields) > 0 {
 		ipAllowDenyListenerFilter = new(envoy_api_v2_listener.ListenerFilter)
-		ipAllowDenyListenerFilter.Name = "envoy.envoy_api_v2_listener.ip_allow_deny"
+		ipAllowDenyListenerFilter.Name = "envoy.listener.ip_allow_deny"
 		ipAllowDenyListenerFilter.ConfigType = &envoy_api_v2_listener.ListenerFilter_Config{
 			Config: &_struct.Struct{
 				Fields: structFields,
