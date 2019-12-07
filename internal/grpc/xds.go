@@ -236,8 +236,9 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 							}
 							// TODO: also check route.GetVhds()
 						}
-					} else {
-						log.Info("wait_on_cds")
+						// } else {
+						//  TODO(lrouquet): log every 1s
+						// 	log.Info("wait_on_cds")
 					}
 
 				case "type.googleapis.com/envoy.api.v2.auth.Secret":
