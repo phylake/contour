@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/projectcontour/contour/internal/protobuf"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type Duration struct {
@@ -74,8 +75,8 @@ type IpAllowDenyCidrs struct {
 }
 
 type Cidr struct {
-	AddressPrefix *string `json:"address_prefix,omitempty"`
-	PrefixLen     *int    `json:"prefix_len,omitempty"`
+	AddressPrefix *string             `json:"address_prefix,omitempty"`
+	PrefixLen     *intstr.IntOrString `json:"prefix_len,omitempty"`
 }
 
 type HeaderSize struct {
