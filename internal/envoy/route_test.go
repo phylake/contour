@@ -18,7 +18,7 @@ import (
 	"time"
 
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/gogo/protobuf/types"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/go-cmp/cmp"
 	"github.com/projectcontour/contour/internal/dag"
 	"github.com/projectcontour/contour/internal/protobuf"
@@ -50,10 +50,11 @@ func TestRoute(t *testing.T) {
 		},
 	}
 	match := RoutePrefix("/")
-	action := RouteRoute(&dag.Route{
+	route := dag.Route{
 		Clusters: []*dag.Cluster{cluster},
-	})
-	got := Route(match, action)
+	}
+	action := RouteRoute(&route)
+	got := Route(match, action, &route)
 	want := &envoy_api_v2_route.Route{
 		Match:               match,
 		Action:              action,
@@ -541,35 +542,35 @@ func TestPerFilterConfig(t *testing.T) {
 			},
 		},
 	}
-	got := make(map[string]*types.Struct)
+	got := make(map[string]*_struct.Struct)
 	for k, v := range msi {
-		s := new(types.Struct)
+		s := new(_struct.Struct)
 		got[k] = s
 		recurseIface(s, v)
 	}
-	want := map[string]*types.Struct{
+	want := map[string]*_struct.Struct{
 		"filter": {
-			Fields: map[string]*types.Value{
+			Fields: map[string]*_struct.Value{
 				"map": {
-					Kind: &types.Value_StructValue{
-						&types.Struct{
-							Fields: map[string]*types.Value{
+					Kind: &_struct.Value_StructValue{
+						&_struct.Struct{
+							Fields: map[string]*_struct.Value{
 								"float": {
-									Kind: &types.Value_NumberValue{9.0},
+									Kind: &_struct.Value_NumberValue{9.0},
 								},
 								"bool": {
-									Kind: &types.Value_BoolValue{true},
+									Kind: &_struct.Value_BoolValue{true},
 								},
 							},
 						},
 					},
 				},
 				"list": {
-					Kind: &types.Value_ListValue{
-						&types.ListValue{
-							Values: []*types.Value{
+					Kind: &_struct.Value_ListValue{
+						&_struct.ListValue{
+							Values: []*_struct.Value{
 								{
-									Kind: &types.Value_StringValue{"string"},
+									Kind: &_struct.Value_StringValue{"string"},
 								},
 							},
 						},
