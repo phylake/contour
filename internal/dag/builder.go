@@ -23,7 +23,7 @@ import (
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	projcontour "github.com/projectcontour/contour/apis/projectcontour/v1alpha1"
 )
@@ -670,13 +670,23 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 			r := &PrefixRoute{
 				Prefix: route.Match,
 				Route: Route{
-					Websocket:     route.EnableWebsockets,
-					HTTPSUpgrade:  routeEnforceTLS(enforceTLS, permitInsecure),
-					PrefixRewrite: route.PrefixRewrite,
-					TimeoutPolicy: timeoutPolicy(route.TimeoutPolicy),
-					RetryPolicy:   retryPolicy(route.RetryPolicy),
+					Websocket:       route.EnableWebsockets,
+					HTTPSUpgrade:    routeEnforceTLS(enforceTLS, permitInsecure),
+					PrefixRewrite:   route.PrefixRewrite,
+					TimeoutPolicy:   timeoutPolicy(route.TimeoutPolicy),
+					RetryPolicy:     retryPolicy(route.RetryPolicy),
+					HashPolicy:      route.HashPolicy,
+					PerFilterConfig: route.PerFilterConfig,
 				},
 			}
+			// TODO(bcook) deprecate this
+			if route.IdleTimeout != nil {
+				r.IdleTimeout = &route.IdleTimeout.Duration
+			}
+			if route.Timeout != nil {
+				r.Timeout = &route.Timeout.Duration
+			}
+
 			for _, service := range route.Services {
 				if service.Port < 1 || service.Port > 65535 {
 					sw.SetInvalid(fmt.Sprintf("route %q: service %q: port must be in the range 1-65535", route.Match, service.Name))
@@ -699,13 +709,17 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 						sw.SetInvalid(err.Error())
 					}
 				}
-				r.Clusters = append(r.Clusters, &Cluster{
+				c := &Cluster{
 					Upstream:             s,
 					LoadBalancerStrategy: service.Strategy,
 					Weight:               service.Weight,
 					HealthCheckPolicy:    healthCheckPolicy(service.HealthCheck),
 					UpstreamValidation:   uv,
-				})
+				}
+				if service.IdleTimeout != nil {
+					c.IdleTimeout = &service.IdleTimeout.Duration
+				}
+				r.Clusters = append(r.Clusters, c)
 			}
 
 			b.lookupVirtualHost(host).addRoute(r)
@@ -727,10 +741,11 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 		}
 
 		if dest, ok := b.Source.ingressroutes[Meta{name: route.Delegate.Name, namespace: namespace}]; ok {
-			if dest.Spec.VirtualHost != nil {
-				sw.SetInvalid("root ingressroute cannot delegate to another root ingressroute")
-				return
-			}
+			// Adobe - allow root to root delegation
+			// if dest.Spec.VirtualHost != nil {
+			// 	sw.SetInvalid("root ingressroute cannot delegate to another root ingressroute")
+			// 	return
+			// }
 
 			// dest is not an orphaned ingress route, as there is an IR that points to it
 			delete(b.orphaned, Meta{name: dest.Name, namespace: dest.Namespace})
@@ -997,8 +1012,8 @@ func MinProtoVersion(version string) envoy_api_v2_auth.TlsParameters_TlsProtocol
 	case "1.2":
 		return envoy_api_v2_auth.TlsParameters_TLSv1_2
 	default:
-		// any other value is interpreted as TLS/1.1
-		return envoy_api_v2_auth.TlsParameters_TLSv1_1
+		// any other value is interpreted as TLS/1.2
+		return envoy_api_v2_auth.TlsParameters_TLSv1_2
 	}
 }
 

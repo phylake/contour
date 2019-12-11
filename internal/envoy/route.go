@@ -28,11 +28,12 @@ func Routes(routes ...*envoy_api_v2_route.Route) []*envoy_api_v2_route.Route {
 }
 
 // Route returns a *envoy_api_v2_route.Route for the supplied match and action.
-func Route(match *envoy_api_v2_route.RouteMatch, action *envoy_api_v2_route.Route_Route) *envoy_api_v2_route.Route {
+func Route(match *envoy_api_v2_route.RouteMatch, action *envoy_api_v2_route.Route_Route, r *dag.Route) *envoy_api_v2_route.Route {
 	return &envoy_api_v2_route.Route{
 		Match:               match,
 		Action:              action,
 		RequestHeadersToAdd: RouteHeaders(),
+		PerFilterConfig:     PerFilterConfig(r),
 	}
 }
 
@@ -41,11 +42,11 @@ func Route(match *envoy_api_v2_route.RouteMatch, action *envoy_api_v2_route.Rout
 // weighted cluster.
 func RouteRoute(r *dag.Route) *envoy_api_v2_route.Route_Route {
 	ra := envoy_api_v2_route.RouteAction{
-		RetryPolicy:   retryPolicy(r),
-		Timeout:       timeout(r),
+		Timeout:       r.Timeout,
+		IdleTimeout:   r.IdleTimeout,
 		PrefixRewrite: r.PrefixRewrite,
-		HashPolicy:    hashPolicy(r),
 	}
+	setHashPolicy(r, &ra)
 
 	if r.Websocket {
 		ra.UpgradeConfigs = append(ra.UpgradeConfigs,
@@ -140,9 +141,7 @@ func UpgradeHTTPS() *envoy_api_v2_route.Route_Redirect {
 
 // RouteHeaders returns a list of headers to be applied at the Route level on envoy
 func RouteHeaders() []*envoy_api_v2_core.HeaderValueOption {
-	return headers(
-		appendHeader("x-request-start", "t=%START_TIME(%s.%3f)%"),
-	)
+	return []*envoy_api_v2_core.HeaderValueOption{}
 }
 
 // weightedClusters returns a route.WeightedCluster for multiple services.
@@ -197,6 +196,11 @@ func VirtualHost(hostname string, routes ...*envoy_api_v2_route.Route) *envoy_ap
 		Name:    hashname(60, hostname),
 		Domains: domains,
 		Routes:  routes,
+		RetryPolicy: &envoy_api_v2_route.RetryPolicy{
+			RetryOn:                       "connect-failure",
+			NumRetries:                    protobuf.UInt32(3),
+			HostSelectionRetryMaxAttempts: 3,
+		},
 	}
 }
 

@@ -170,8 +170,9 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	coreInformers.Extensions().V1beta1().Ingresses().Informer().AddEventHandler(eh)
 	contourInformers.Contour().V1beta1().IngressRoutes().Informer().AddEventHandler(eh)
 	contourInformers.Contour().V1beta1().TLSCertificateDelegations().Informer().AddEventHandler(eh)
-	contourInformers.Projectcontour().V1alpha1().HTTPProxies().Informer().AddEventHandler(eh)
-	contourInformers.Projectcontour().V1alpha1().TLSCertificateDelegations().Informer().AddEventHandler(eh)
+	// Adobe - disable 1.0 CRDs
+	// contourInformers.Projectcontour().V1alpha1().HTTPProxies().Informer().AddEventHandler(eh)
+	// contourInformers.Projectcontour().V1alpha1().TLSCertificateDelegations().Informer().AddEventHandler(eh)
 
 	// Add informers for each root-ingressroute namespaces
 	for _, inf := range namespacedInformers {
@@ -264,6 +265,10 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	metrics := metrics.NewMetrics(registry)
 	eh.Metrics = metrics
 	eh.CacheHandler.Metrics = metrics
+
+	// step 12.5. synchronous cache init (Adobe)
+	err := initCache(client, contourClient, eh, et)
+	check(err)
 
 	// step 13. create grpc handler and register with workgroup.
 	g.Add(func(stop <-chan struct{}) error {
