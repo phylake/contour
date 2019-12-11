@@ -20,6 +20,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 - whitelisted `perFilterConfig` fields
 - xDS version_info now a hash of the xDS response
+- fixed filter chain grouping issue related to min tls version
 - built from contour 2cc3c388e9230ab9279d0d5ff5da7a96982f008e
 
 ## v0.15.0-2.0.2-adobe
