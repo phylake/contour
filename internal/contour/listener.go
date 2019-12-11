@@ -300,6 +300,9 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 				// The ServerNames field will only ever have a single entry
 				// in our FilterChain config, so it's okay to only sort
 				// on the first slice entry.
+				// Adobe - we added grouping so the above statement is no longer true.
+				// With that said, since a "ServerName" (fqdn) is unique, it's still ok
+				// to only sort on the first one.
 				return lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains[i].FilterChainMatch.ServerNames[0] < lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains[j].FilterChainMatch.ServerNames[0]
 			})
 	}
@@ -346,13 +349,19 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			alpnProtos = nil // do not offer ALPN
 		}
 
-		// Group filter chain by the cert
-		// if a filter chain with that cert already exists, just add the vhost name to the existing list
+		// Group filter chain by cert and min TLS version (client-configurable)
+		// if a filter chain with that cert and that min tls already exists, just
+		// add the vhost name to the existing list
+		// EXCEPTION: don't group if TCPProxy filter exists (client-provided)
 		fcExists := false
-		if vh.Secret != nil {
+		if vh.TCPProxy == nil && vh.Secret != nil {
 			secretName := envoy.Secretname(vh.Secret)
 			for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
-				if fc.TlsContext != nil && envoy.RetrieveSecretName(fc.TlsContext) == secretName {
+				if fc.TlsContext == nil {
+					// No TlsContext, no grouping
+					break
+				}
+				if envoy.RetrieveSecretName(fc.TlsContext) == secretName && envoy.RetrieveMinTLSVersion(fc.TlsContext) == vh.MinProtoVersion {
 					fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
 					sort.Strings(fc.FilterChainMatch.ServerNames)
 					fcExists = true
@@ -371,7 +380,6 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			)
 
 			v.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fc)
-			sort.Stable(filterChainTLSBySecretName(v.listeners[ENVOY_HTTPS_LISTENER].FilterChains))
 		}
 	default:
 		// recurse
