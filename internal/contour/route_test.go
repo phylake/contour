@@ -18,6 +18,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projectcontour/contour/adobe"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/proto"
@@ -1324,7 +1326,7 @@ func TestRouteVisit(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			root := buildDAG(tc.objs...)
 			got := visitRoutes(root)
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, adobe.IgnoreFields()...); diff != "" {
 				t.Fatal(diff)
 			}
 		})

@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/projectcontour/contour/adobe"
+
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/golang/protobuf/proto"
@@ -473,6 +475,7 @@ func TestSecretVisit(t *testing.T) {
 func buildDAG(objs ...interface{}) *dag.DAG {
 	var builder dag.Builder
 	for _, o := range objs {
+		adobe.AdobefyObject(o)
 		builder.Source.Insert(o)
 	}
 	return builder.Build()

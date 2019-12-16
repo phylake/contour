@@ -16,6 +16,8 @@ package contour
 import (
 	"testing"
 
+	"github.com/projectcontour/contour/adobe"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -270,7 +272,7 @@ func TestListenerVisit(t *testing.T) {
 					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 						ServerNames: []string{"whatever.example.com"},
 					},
-					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 					Filters:    envoy.Filters(envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, envoy.FileAccessLogEnvoy(DEFAULT_HTTP_ACCESS_LOG))),
 				}},
 			}),
@@ -357,13 +359,13 @@ func TestListenerVisit(t *testing.T) {
 					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 						ServerNames: []string{"sortedfirst.example.com"},
 					},
-					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 					Filters:    envoy.Filters(envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, envoy.FileAccessLogEnvoy(DEFAULT_HTTP_ACCESS_LOG))),
 				}, {
 					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 						ServerNames: []string{"sortedsecond.example.com"},
 					},
-					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 					Filters:    envoy.Filters(envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, envoy.FileAccessLogEnvoy(DEFAULT_HTTP_ACCESS_LOG))),
 				}},
 			}),
@@ -479,7 +481,7 @@ func TestListenerVisit(t *testing.T) {
 					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 						ServerNames: []string{"www.example.com"},
 					},
-					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 					Filters:    envoy.Filters(envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, envoy.FileAccessLogEnvoy(DEFAULT_HTTP_ACCESS_LOG))),
 				}},
 				ListenerFilters: envoy.ListenerFilters(
@@ -560,7 +562,7 @@ func TestListenerVisit(t *testing.T) {
 					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 						ServerNames: []string{"www.example.com"},
 					},
-					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 					Filters:    envoy.Filters(envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, envoy.FileAccessLogEnvoy(DEFAULT_HTTP_ACCESS_LOG))),
 				}},
 				ListenerFilters: envoy.ListenerFilters(
@@ -634,7 +636,7 @@ func TestListenerVisit(t *testing.T) {
 					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 						ServerNames: []string{"whatever.example.com"},
 					},
-					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 					Filters:    envoy.Filters(envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, envoy.FileAccessLogEnvoy(DEFAULT_HTTP_ACCESS_LOG))),
 				}},
 			}),
@@ -706,7 +708,7 @@ func TestListenerVisit(t *testing.T) {
 					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 						ServerNames: []string{"whatever.example.com"},
 					},
-					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 					Filters:    envoy.Filters(envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, envoy.FileAccessLogEnvoy(DEFAULT_HTTP_ACCESS_LOG))),
 				}},
 			}),
@@ -775,7 +777,7 @@ func TestListenerVisit(t *testing.T) {
 					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 						ServerNames: []string{"whatever.example.com"},
 					},
-					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+					TlsContext: tlscontext(envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 					Filters:    envoy.Filters(envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, envoy.FileAccessLogEnvoy("/tmp/https_access.log"))),
 				}},
 			}),
@@ -993,6 +995,9 @@ func TestListenerVisit(t *testing.T) {
 	}
 
 	for name, tc := range tests {
+		if adobe.ShouldSkipTest(name) {
+			t.SkipNow()
+		}
 		t.Run(name, func(t *testing.T) {
 			root := buildDAG(tc.objs...)
 			got := visitListeners(root, &tc.ListenerVisitorConfig)

@@ -16,6 +16,8 @@ package dag
 import (
 	"testing"
 
+	"github.com/projectcontour/contour/adobe"
+
 	"github.com/google/go-cmp/cmp"
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	projcontour "github.com/projectcontour/contour/apis/projectcontour/v1alpha1"
@@ -1041,7 +1043,11 @@ func TestDAGIngressRouteStatus(t *testing.T) {
 					FieldLogger:    testLogger(t),
 				},
 			}
+			if adobe.ShouldSkipTest(name) {
+				t.SkipNow()
+			}
 			for _, o := range tc.objs {
+				adobe.AdobefyObject(o)
 				builder.Source.Insert(o)
 			}
 			dag := builder.Build()
@@ -1694,7 +1700,11 @@ func TestDAGHTTPProxyStatus(t *testing.T) {
 					FieldLogger:    testLogger(t),
 				},
 			}
+			if adobe.ShouldSkipTest(name) {
+				t.SkipNow()
+			}
 			for _, o := range tc.objs {
+				adobe.AdobefyObject(o)
 				builder.Source.Insert(o)
 			}
 
