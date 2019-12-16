@@ -146,3 +146,14 @@ func setHashPolicy(r *dag.Route, ra *envoy_api_v2_route.RouteAction) {
 		}
 	}
 }
+
+// RouteAdobe: Route with Adobe customization
+func RouteAdobe(match *envoy_api_v2_route.RouteMatch, action *envoy_api_v2_route.Route_Route, route *dag.Route) *envoy_api_v2_route.Route {
+	// Call upstream Route so we can catch changes in the func signature!
+	ur := Route(match, action)
+
+	// Add customization here
+	ur.PerFilterConfig = PerFilterConfig(route)
+
+	return ur
+}

@@ -28,12 +28,11 @@ func Routes(routes ...*envoy_api_v2_route.Route) []*envoy_api_v2_route.Route {
 }
 
 // Route returns a *envoy_api_v2_route.Route for the supplied match and action.
-func Route(match *envoy_api_v2_route.RouteMatch, action *envoy_api_v2_route.Route_Route, r *dag.Route) *envoy_api_v2_route.Route {
+func Route(match *envoy_api_v2_route.RouteMatch, action *envoy_api_v2_route.Route_Route) *envoy_api_v2_route.Route {
 	return &envoy_api_v2_route.Route{
 		Match:               match,
 		Action:              action,
 		RequestHeadersToAdd: RouteHeaders(),
-		PerFilterConfig:     PerFilterConfig(r),
 	}
 }
 
