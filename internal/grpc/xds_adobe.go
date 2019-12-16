@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 
@@ -31,6 +32,9 @@ var mutex = &sync.Mutex{}
 // EDS will wait for CDS
 // RDS will wait for LDS
 func synchronizeXDS(req *envoy_api_v2.DiscoveryRequest, resources []proto.Message, log *logrus.Entry) {
+	if _, ok := os.LookupEnv("ZZZ_NO_SYNC_XDS"); ok {
+		return
+	}
 	freeToGo := false
 	for !freeToGo {
 		mutex.Lock()
