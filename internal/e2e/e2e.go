@@ -69,7 +69,8 @@ func (d *discardWriter) Write(buf []byte) (int, error) {
 }
 
 func setup(t *testing.T, opts ...func(*contour.EventHandler)) (cache.ResourceEventHandler, *grpc.ClientConn, func()) {
-	t.Parallel()
+	// Adobe - conflicts with tests using environment variables
+	// t.Parallel()
 
 	log := logrus.New()
 	log.Out = &testWriter{t}
@@ -287,9 +288,7 @@ func (r *Response) Equals(want *v2.DiscoveryResponse) {
 	assertEqual(r.T, want, r.DiscoveryResponse)
 }
 
-func assertEqual(t *testing.T, want, got *v2.DiscoveryResponse) {
-	// Modify with Adobe customizations
-	adobefyXDS(t, want)
+func assertEqualUpstream(t *testing.T, want, got *v2.DiscoveryResponse) {
 	t.Helper()
 	m := proto.TextMarshaler{Compact: true, ExpandAny: true}
 	a := m.Text(want)
