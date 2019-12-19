@@ -401,7 +401,7 @@ func TestIngressRouteTLSListener(t *testing.T) {
 		FilterChains: filterchaintls("kuard.example.com", secret1, envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout")), "h2", "http/1.1"),
 	}
 
-	l1.FilterChains[0].TlsContext.CommonTlsContext.TlsParams.TlsMinimumProtocolVersion = envoy_api_v2_auth.TlsParameters_TLSv1_1
+	l1.FilterChains[0].TlsContext.CommonTlsContext.TlsParams.TlsMinimumProtocolVersion = envoy_api_v2_auth.TlsParameters_TLSv1_2
 
 	// add service
 	rh.OnAdd(svc1)
@@ -1890,7 +1890,7 @@ func filterchaintls(domain string, secret *v1.Secret, filter *envoy_api_v2_liste
 			[]*envoy_api_v2_listener.Filter{
 				filter,
 			},
-			envoy_api_v2_auth.TlsParameters_TLSv1_1,
+			envoy_api_v2_auth.TlsParameters_TLSv1_2,
 			alpn...,
 		),
 	}

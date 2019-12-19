@@ -117,7 +117,7 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 				vh.Visit(func(v dag.Vertex) {
 					switch r := v.(type) {
 					case *dag.PrefixRoute:
-						rr := envoy.Route(envoy.RoutePrefix(r.Prefix), envoy.RouteRoute(&r.Route), &r.Route)
+						rr := envoy.RouteAdobe(envoy.RoutePrefix(r.Prefix), envoy.RouteRoute(&r.Route), &r.Route)
 
 						if r.HTTPSUpgrade {
 							rr.Action = envoy.UpgradeHTTPS()
@@ -125,7 +125,7 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 						}
 						routes = append(routes, rr)
 					case *dag.RegexRoute:
-						rr := envoy.Route(envoy.RouteRegex(r.Regex), envoy.RouteRoute(&r.Route), &r.Route)
+						rr := envoy.RouteAdobe(envoy.RouteRegex(r.Regex), envoy.RouteRoute(&r.Route), &r.Route)
 
 						if r.HTTPSUpgrade {
 							rr.Action = envoy.UpgradeHTTPS()
@@ -147,12 +147,12 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 					case *dag.PrefixRoute:
 						routes = append(
 							routes,
-							envoy.Route(envoy.RoutePrefix(r.Prefix), envoy.RouteRoute(&r.Route), &r.Route),
+							envoy.RouteAdobe(envoy.RoutePrefix(r.Prefix), envoy.RouteRoute(&r.Route), &r.Route),
 						)
 					case *dag.RegexRoute:
 						routes = append(
 							routes,
-							envoy.Route(envoy.RouteRegex(r.Regex), envoy.RouteRoute(&r.Route), &r.Route),
+							envoy.RouteAdobe(envoy.RouteRegex(r.Regex), envoy.RouteRoute(&r.Route), &r.Route),
 						)
 					}
 				})

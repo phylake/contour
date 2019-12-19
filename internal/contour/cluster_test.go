@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projectcontour/contour/adobe"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -855,7 +857,7 @@ func TestClusterVisit(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			root := buildDAG(tc.objs...)
 			got := visitClusters(root)
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, adobe.IgnoreFields()...); diff != "" {
 				t.Fatal(diff)
 			}
 		})

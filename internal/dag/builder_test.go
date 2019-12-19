@@ -18,6 +18,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projectcontour/contour/adobe"
+
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/google/go-cmp/cmp"
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
@@ -2427,7 +2429,7 @@ func TestDAGInsert(t *testing.T) {
 								),
 							},
 							Secret:          secret(sec1),
-							MinProtoVersion: envoy_api_v2_auth.TlsParameters_TLSv1_1,
+							MinProtoVersion: envoy_api_v2_auth.TlsParameters_TLSv1_2,
 						},
 					),
 				},
@@ -3554,7 +3556,7 @@ func TestDAGInsert(t *testing.T) {
 							VirtualHost: VirtualHost{
 								Name: "example.com",
 							},
-							MinProtoVersion: envoy_api_v2_auth.TlsParameters_TLSv1_1,
+							MinProtoVersion: envoy_api_v2_auth.TlsParameters_TLSv1_2,
 							Secret:          secret(sec1),
 							TCPProxy: &TCPProxy{
 								Clusters: clusters(service(s9)),
@@ -3827,7 +3829,11 @@ func TestDAGInsert(t *testing.T) {
 					FieldLogger: testLogger(t),
 				},
 			}
+			if adobe.ShouldSkipTest(name) {
+				t.SkipNow()
+			}
 			for _, o := range tc.objs {
+				adobe.AdobefyObject(o)
 				if !builder.Source.Insert(o) {
 					t.Logf("insert %v: failed", o)
 				}
@@ -3847,6 +3853,7 @@ func TestDAGInsert(t *testing.T) {
 			opts := []cmp.Option{
 				cmp.AllowUnexported(VirtualHost{}),
 			}
+			opts = append(opts, adobe.IgnoreFields()...)
 			if diff := cmp.Diff(want, got, opts...); diff != "" {
 				t.Fatal(diff)
 			}
@@ -4147,6 +4154,7 @@ func TestDAGRootNamespaces(t *testing.T) {
 			}
 
 			for _, o := range tc.objs {
+				adobe.AdobefyObject(o)
 				builder.Source.Insert(o)
 			}
 			dag := builder.Build()
@@ -4505,7 +4513,7 @@ func securevirtualhost(name string, sec *v1.Secret, v ...Vertex) *SecureVirtualH
 			Name:   name,
 			routes: routes(v...),
 		},
-		MinProtoVersion: envoy_api_v2_auth.TlsParameters_TLSv1_1,
+		MinProtoVersion: envoy_api_v2_auth.TlsParameters_TLSv1_2,
 		Secret:          secret(sec),
 	}
 }

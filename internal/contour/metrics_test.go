@@ -16,6 +16,8 @@ package contour
 import (
 	"testing"
 
+	"github.com/projectcontour/contour/adobe"
+
 	"github.com/google/go-cmp/cmp"
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	projcontour "github.com/projectcontour/contour/apis/projectcontour/v1alpha1"
@@ -537,6 +539,7 @@ func TestIngressRouteMetrics(t *testing.T) {
 				},
 			}
 			for _, o := range tc.objs {
+				adobe.AdobefyObject(o)
 				builder.Source.Insert(o)
 			}
 			dag := builder.Build()

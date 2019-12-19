@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projectcontour/contour/adobe"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy "github.com/envoyproxy/go-control-plane/pkg/cache"
@@ -165,6 +167,7 @@ type resourceEventHandler struct {
 }
 
 func (r *resourceEventHandler) OnAdd(obj interface{}) {
+	adobe.AdobefyObject(obj)
 	switch obj.(type) {
 	case *v1.Endpoints:
 		r.EndpointsTranslator.OnAdd(obj)
@@ -175,6 +178,7 @@ func (r *resourceEventHandler) OnAdd(obj interface{}) {
 }
 
 func (r *resourceEventHandler) OnUpdate(oldObj, newObj interface{}) {
+	adobe.AdobefyObject(newObj)
 	switch newObj.(type) {
 	case *v1.Endpoints:
 		r.EndpointsTranslator.OnUpdate(oldObj, newObj)
@@ -284,6 +288,8 @@ func (r *Response) Equals(want *v2.DiscoveryResponse) {
 }
 
 func assertEqual(t *testing.T, want, got *v2.DiscoveryResponse) {
+	// Modify with Adobe customizations
+	adobefyXDS(t, want)
 	t.Helper()
 	m := proto.TextMarshaler{Compact: true, ExpandAny: true}
 	a := m.Text(want)

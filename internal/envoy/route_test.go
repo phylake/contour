@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projectcontour/contour/adobe"
+
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/go-cmp/cmp"
@@ -50,11 +52,10 @@ func TestRoute(t *testing.T) {
 		},
 	}
 	match := RoutePrefix("/")
-	route := dag.Route{
+	action := RouteRoute(&dag.Route{
 		Clusters: []*dag.Cluster{cluster},
-	}
-	action := RouteRoute(&route)
-	got := Route(match, action, &route)
+	})
+	got := Route(match, action)
 	want := &envoy_api_v2_route.Route{
 		Match:               match,
 		Action:              action,
@@ -356,7 +357,7 @@ func TestRouteRoute(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := RouteRoute(tc.route)
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, adobe.IgnoreFields()...); diff != "" {
 				t.Fatal(diff)
 			}
 		})
@@ -508,7 +509,7 @@ func TestVirtualHost(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := VirtualHost(tc.hostname)
-			if diff := cmp.Diff(got, tc.want); diff != "" {
+			if diff := cmp.Diff(got, tc.want, adobe.IgnoreFields()...); diff != "" {
 				t.Fatal(diff)
 			}
 		})
