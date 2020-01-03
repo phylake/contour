@@ -1294,89 +1294,6 @@ func TestPrefixRewriteIngressRoute(t *testing.T) {
 	), nil)
 }
 
-func TestHashPolicyIngressRoute(t *testing.T) {
-	rh, cc, done := setup(t)
-	defer done()
-
-	rh.OnAdd(&v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ws",
-			Namespace: "default",
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{{
-				Protocol:   "TCP",
-				Port:       80,
-				TargetPort: intstr.FromInt(8080),
-			}},
-		},
-	})
-
-	rh.OnAdd(&ingressroutev1.IngressRoute{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "simple",
-			Namespace: "default",
-		},
-		Spec: ingressroutev1.IngressRouteSpec{
-			VirtualHost: &projcontour.VirtualHost{Fqdn: "hashpolicy.hello.world"},
-			Routes: []ingressroutev1.Route{{
-				Match: "/",
-				Services: []ingressroutev1.Service{{
-					Name: "ws",
-					Port: 80,
-				}},
-				HashPolicy: []ingressroutev1.HashPolicy{
-					{
-						Header: &ingressroutev1.HashPolicyHeader{
-							HeaderName: "x-some-header",
-						},
-					},
-					{
-						Cookie: &ingressroutev1.HashPolicyCookie{
-							Name: "nom-nom-nom",
-						},
-						Terminal: true,
-					},
-					{
-						ConnectionProperties: &ingressroutev1.HashPolicyConnectionProperties{
-							SourceIp: true,
-						},
-					},
-				},
-			}},
-		},
-	})
-
-	r := routecluster("default/ws/80/da39a3ee5e")
-	r.Route.HashPolicy = make([]*envoy_api_v2_route.RouteAction_HashPolicy, 3)
-	r.Route.HashPolicy[0] = &envoy_api_v2_route.RouteAction_HashPolicy{
-		PolicySpecifier: &envoy_api_v2_route.RouteAction_HashPolicy_Header_{
-			Header: &envoy_api_v2_route.RouteAction_HashPolicy_Header{
-				HeaderName: "x-some-header",
-			},
-		},
-	}
-	r.Route.HashPolicy[1] = &envoy_api_v2_route.RouteAction_HashPolicy{
-		PolicySpecifier: &envoy_api_v2_route.RouteAction_HashPolicy_Cookie_{
-			Cookie: &envoy_api_v2_route.RouteAction_HashPolicy_Cookie{
-				Name: "nom-nom-nom",
-			},
-		},
-		Terminal: true,
-	}
-	r.Route.HashPolicy[2] = &envoy_api_v2_route.RouteAction_HashPolicy{
-		PolicySpecifier: &envoy_api_v2_route.RouteAction_HashPolicy_ConnectionProperties_{
-			ConnectionProperties: &envoy_api_v2_route.RouteAction_HashPolicy_ConnectionProperties{
-				SourceIp: true,
-			},
-		},
-	}
-
-	assertRDS(t, cc, "1", virtualhosts(
-		envoy.VirtualHost("hashpolicy.hello.world", envoy.Route(envoy.RoutePrefix("/"), r)),
-	), nil)
-}
-
 // issue 404
 func TestDefaultBackendDoesNotOverwriteNamedHost(t *testing.T) {
 	rh, cc, done := setup(t)
@@ -2782,9 +2699,9 @@ func TestRDSIngressRouteRootCannotDelegateToAnotherRoot(t *testing.T) {
 
 }
 
-func assertRDS(t *testing.T, cc *grpc.ClientConn, versioninfo string, ingress_http, ingress_https []*envoy_api_v2_route.VirtualHost) {
+func assertRDSUpstream(t *testing.T, cc *grpc.ClientConn, versioninfo string, ingress_http, ingress_https []*envoy_api_v2_route.VirtualHost) {
 	t.Helper()
-	assertEqual(t, &v2.DiscoveryResponse{
+	assertEqualUpstream(t, &v2.DiscoveryResponse{
 		VersionInfo: versioninfo,
 		Resources: resources(t,
 			&v2.RouteConfiguration{

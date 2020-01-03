@@ -29,6 +29,9 @@ test-race: | test
 test-adobe:
 	CIDR_LIST_PATH= ZZZ_NO_SYNC_XDS=true go test -count=1 -mod=readonly $(MODULE)/...
 
+test-adobe-only:
+	CIDR_LIST_PATH= ZZZ_NO_SYNC_XDS=true go test -count=1 -mod=readonly $(MODULE)/... --run TestAdobe
+
 vet: | test
 	go vet $(MODULE)/...
 

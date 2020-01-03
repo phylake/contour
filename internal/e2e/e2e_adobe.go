@@ -8,12 +8,14 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoy_types "github.com/envoyproxy/go-control-plane/envoy/type"
 	envoy "github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/projectcontour/contour/internal/protobuf"
+	"google.golang.org/grpc"
 )
 
 // CDS customization
@@ -122,4 +124,43 @@ func toMessage(t *testing.T, a *any.Any) proto.Message {
 	err := ptypes.UnmarshalAny(a, &x)
 	check(t, err)
 	return x.Message
+}
+
+// Intercepts upstream functions and perform the customization
+// -- upstream assertEqual becomes assertEqualUpstream
+// -- new assertEqual (now used by upstream tests) has Adobe customization
+// -- new assertEqualAdobe == assertEqual (for name consistency and attempts to clear confusion)
+// (same idea with assertRDS)
+
+func assertEqual(t *testing.T, want, got *v2.DiscoveryResponse) {
+	// Modify with Adobe customizations
+	adobefyXDS(t, want)
+	assertEqualUpstream(t, want, got)
+}
+
+func assertRDS(t *testing.T, cc *grpc.ClientConn, versioninfo string, ingress_http, ingress_https []*envoy_api_v2_route.VirtualHost) {
+	t.Helper()
+	assertEqual(t, &v2.DiscoveryResponse{
+		VersionInfo: versioninfo,
+		Resources: resources(t,
+			&v2.RouteConfiguration{
+				Name:         "ingress_http",
+				VirtualHosts: ingress_http,
+			},
+			&v2.RouteConfiguration{
+				Name:         "ingress_https",
+				VirtualHosts: ingress_https,
+			},
+		),
+		TypeUrl: routeType,
+		Nonce:   versioninfo,
+	}, streamRDS(t, cc))
+}
+
+func assertEqualAdobe(t *testing.T, want, got *v2.DiscoveryResponse) {
+	assertEqual(t, want, got)
+}
+
+func assertRDSAdobe(t *testing.T, cc *grpc.ClientConn, versioninfo string, ingress_http, ingress_https []*envoy_api_v2_route.VirtualHost) {
+	assertRDS(t, cc, versioninfo, ingress_http, ingress_https)
 }
