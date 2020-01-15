@@ -970,13 +970,23 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 
 			permitInsecure := route.PermitInsecure && !b.DisablePermitInsecure
 			r := &Route{
-				PathCondition: &PrefixCondition{Prefix: route.Match},
-				Websocket:     route.EnableWebsockets,
-				HTTPSUpgrade:  routeEnforceTLS(enforceTLS, permitInsecure),
-				PrefixRewrite: route.PrefixRewrite,
-				TimeoutPolicy: ingressrouteTimeoutPolicy(route.TimeoutPolicy),
-				RetryPolicy:   retryPolicy(route.RetryPolicy),
+				PathCondition:   &PrefixCondition{Prefix: route.Match},
+				Websocket:       route.EnableWebsockets,
+				HTTPSUpgrade:    routeEnforceTLS(enforceTLS, permitInsecure),
+				PrefixRewrite:   route.PrefixRewrite,
+				TimeoutPolicy:   ingressrouteTimeoutPolicy(route.TimeoutPolicy),
+				RetryPolicy:     retryPolicy(route.RetryPolicy),
+				HashPolicy:      route.HashPolicy,
+				PerFilterConfig: route.PerFilterConfig,
 			}
+			// TODO(bcook) deprecate this
+			if route.IdleTimeout != nil {
+				r.IdleTimeout = &route.IdleTimeout.Duration
+			}
+			if route.Timeout != nil {
+				r.Timeout = &route.Timeout.Duration
+			}
+
 			for _, service := range route.Services {
 				if service.Port < 1 || service.Port > 65535 {
 					sw.SetInvalid("route %q: service %q: port must be in the range 1-65535", route.Match, service.Name)
@@ -1000,15 +1010,18 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 						return
 					}
 				}
-
-				r.Clusters = append(r.Clusters, &Cluster{
+				c := &Cluster{
 					Upstream:           s,
 					LoadBalancerPolicy: service.Strategy,
 					Weight:             service.Weight,
 					HealthCheckPolicy:  ingressrouteHealthCheckPolicy(service.HealthCheck),
 					UpstreamValidation: uv,
 					Protocol:           s.Protocol,
-				})
+				}
+				if service.IdleTimeout != nil {
+					c.IdleTimeout = &service.IdleTimeout.Duration
+				}
+				r.Clusters = append(r.Clusters, c)
 			}
 
 			b.lookupVirtualHost(host).addRoute(r)
@@ -1030,10 +1043,11 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 		}
 
 		if dest, ok := b.Source.ingressroutes[Meta{name: route.Delegate.Name, namespace: namespace}]; ok {
-			if dest.Spec.VirtualHost != nil {
-				sw.SetInvalid("root ingressroute cannot delegate to another root ingressroute")
-				return
-			}
+			// Adobe - allow root to root delegation
+			// if dest.Spec.VirtualHost != nil {
+			// 	sw.SetInvalid("root ingressroute cannot delegate to another root ingressroute")
+			// 	return
+			// }
 
 			// dest is not an orphaned ingress route, as there is an IR that points to it
 			delete(b.orphaned, Meta{name: dest.Name, namespace: dest.Namespace})

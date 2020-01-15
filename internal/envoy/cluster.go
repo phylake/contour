@@ -50,6 +50,13 @@ func Cluster(c *dag.Cluster) *v2.Cluster {
 	cluster.AltStatName = altStatName(service)
 	cluster.LbPolicy = lbPolicy(c.LoadBalancerPolicy)
 	cluster.HealthChecks = edshealthcheck(c)
+	cluster.CircuitBreakers = &envoy_cluster.CircuitBreakers{
+		Thresholds: []*envoy_cluster.CircuitBreakers_Thresholds{{
+			MaxConnections: u32nil(1000000),
+			MaxRequests:    u32nil(1000000),
+		}},
+	}
+	cluster.DrainConnectionsOnHostRemoval = true
 
 	switch len(service.ExternalName) {
 	case 0:
@@ -62,20 +69,15 @@ func Cluster(c *dag.Cluster) *v2.Cluster {
 		cluster.LoadAssignment = StaticClusterLoadAssignment(service)
 	}
 
+	if c.IdleTimeout != nil {
+		cluster.CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
+			IdleTimeout: c.IdleTimeout,
+		}
+	}
+
 	// Drain connections immediately if using healthchecks and the endpoint is known to be removed
 	if c.HealthCheckPolicy != nil {
 		cluster.DrainConnectionsOnHostRemoval = true
-	}
-
-	if anyPositive(service.MaxConnections, service.MaxPendingRequests, service.MaxRequests, service.MaxRetries) {
-		cluster.CircuitBreakers = &envoy_cluster.CircuitBreakers{
-			Thresholds: []*envoy_cluster.CircuitBreakers_Thresholds{{
-				MaxConnections:     u32nil(service.MaxConnections),
-				MaxPendingRequests: u32nil(service.MaxPendingRequests),
-				MaxRequests:        u32nil(service.MaxRequests),
-				MaxRetries:         u32nil(service.MaxRetries),
-			}},
-		}
 	}
 
 	switch c.Protocol {
@@ -156,8 +158,10 @@ func lbPolicy(strategy string) v2.Cluster_LbPolicy {
 		return v2.Cluster_LEAST_REQUEST
 	case "Random":
 		return v2.Cluster_RANDOM
-	case "Cookie":
+	case "RingHash":
 		return v2.Cluster_RING_HASH
+	case "Maglev":
+		return v2.Cluster_MAGLEV
 	default:
 		return v2.Cluster_ROUND_ROBIN
 	}

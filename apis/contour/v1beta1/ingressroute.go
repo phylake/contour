@@ -57,6 +57,14 @@ type Route struct {
 	// The retry policy for this route
 	// +optional
 	RetryPolicy *projcontour.RetryPolicy `json:"retryPolicy,omitempty"`
+
+	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
+
+	PerFilterConfig *PerFilterConfig `json:"perFilterConfig,omitempty"`
+
+	Timeout *Duration `json:"timeout,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 }
 
 // TimeoutPolicy define the attributes associated with timeout
@@ -96,6 +104,8 @@ type Service struct {
 	// UpstreamValidation defines how to verify the backend service's certificate
 	// +optional
 	UpstreamValidation *projcontour.UpstreamValidation `json:"validation,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 }
 
 // HealthCheck defines health checks on the upstream service.

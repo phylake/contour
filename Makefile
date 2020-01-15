@@ -86,6 +86,14 @@ check-test:
 check-test-race: | check-test
 	go test -race -mod=readonly $(MODULE)/...
 
+.PHONY: test-adobe
+test-adobe:
+	CIDR_LIST_PATH= ZZZ_NO_SYNC_XDS=true go test -count=1 -mod=readonly $(MODULE)/...
+
+.PHONY: test-adobe-only
+test-adobe-only:
+	CIDR_LIST_PATH= ZZZ_NO_SYNC_XDS=true go test -count=1 -mod=readonly $(MODULE)/... --run TestAdobe
+
 .PHONY: check-stale
 check-stale: ## Check for stale generated content
 check-stale: metrics-docs rendercrds render render-refdocs

@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projectcontour/contour/adobe"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy "github.com/envoyproxy/go-control-plane/pkg/cache"
@@ -60,7 +62,8 @@ func (d *discardWriter) Write(buf []byte) (int, error) {
 }
 
 func setup(t *testing.T, opts ...func(*contour.EventHandler)) (cache.ResourceEventHandler, *Contour, func()) {
-	t.Parallel()
+	// Adobe - conflicts with tests using environment variables
+	// t.Parallel()
 
 	log := logrus.New()
 	log.Out = new(discardWriter)
@@ -174,6 +177,7 @@ type resourceEventHandler struct {
 }
 
 func (r *resourceEventHandler) OnAdd(obj interface{}) {
+	adobe.AdobefyObject(obj)
 	switch obj.(type) {
 	case *v1.Endpoints:
 		r.EndpointsTranslator.OnAdd(obj)
@@ -184,6 +188,7 @@ func (r *resourceEventHandler) OnAdd(obj interface{}) {
 }
 
 func (r *resourceEventHandler) OnUpdate(oldObj, newObj interface{}) {
+	adobe.AdobefyObject(newObj)
 	switch newObj.(type) {
 	case *v1.Endpoints:
 		r.EndpointsTranslator.OnUpdate(oldObj, newObj)

@@ -179,8 +179,9 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	informers = registerEventHandler(informers, coreInformers.Core().V1().Services().Informer(), eh)
 	informers = registerEventHandler(informers, contourInformers.Contour().V1beta1().IngressRoutes().Informer(), eh)
 	informers = registerEventHandler(informers, contourInformers.Contour().V1beta1().TLSCertificateDelegations().Informer(), eh)
-	informers = registerEventHandler(informers, contourInformers.Projectcontour().V1().HTTPProxies().Informer(), eh)
-	informers = registerEventHandler(informers, contourInformers.Projectcontour().V1().TLSCertificateDelegations().Informer(), eh)
+	// Adobe - disable 1.0 CRDs
+	// informers = registerEventHandler(informers, contourInformers.Projectcontour().V1().HTTPProxies().Informer(), eh)
+	// informers = registerEventHandler(informers, contourInformers.Projectcontour().V1().TLSCertificateDelegations().Informer(), eh)
 
 	// After K8s 1.13 the API server will automatically translate extensions/v1beta1.Ingress objects
 	// to networking/v1beta1.Ingress objects so we should only listen for one type or the other.
@@ -309,6 +310,10 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	metrics := metrics.NewMetrics(registry)
 	eh.Metrics = metrics
 	eh.CacheHandler.Metrics = metrics
+
+	// step 12.5. synchronous cache init (Adobe)
+	err = initCache(clients.core, clients.contour, eh, et)
+	check(err)
 
 	// step 13. create grpc handler and register with workgroup.
 	g.Add(func(stop <-chan struct{}) error {
