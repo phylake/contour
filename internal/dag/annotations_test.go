@@ -385,6 +385,8 @@ func TestAnnotationCompat(t *testing.T) {
 }
 
 func TestAnnotationKindValidation(t *testing.T) {
+	// Adobe - annotations are restricted - skip test
+	t.SkipNow()
 	type status struct {
 		known bool
 		valid bool
