@@ -1600,7 +1600,7 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 									AccessLog:        envoy.FileAccessLogEnvoy("/dev/stdout"),
 									UseRemoteAddress: protobuf.Bool(true),
 									NormalizePath:    protobuf.Bool(true),
-									RequestTimeout:   protobuf.Duration(0), //TODO. check with bcook
+									RequestTimeout:   protobuf.Duration(0),
 									Tracing: &http.HttpConnectionManager_Tracing{
 										OperationName:   http.HttpConnectionManager_Tracing_EGRESS,
 										ClientSampling:  &envoy_type.Percent{Value: 25},

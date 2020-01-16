@@ -129,7 +129,7 @@ func HTTPConnectionManager(routename string, accesslogger []*accesslog.AccessLog
 				AccessLog:        accesslogger,
 				UseRemoteAddress: protobuf.Bool(true),
 				NormalizePath:    protobuf.Bool(true),
-				RequestTimeout:   protobuf.Duration(requestTimeout), // TODO: check with bcook if we need to keep this.
+				RequestTimeout:   protobuf.Duration(requestTimeout),
 				Tracing:          tracing(),
 			}),
 		},
