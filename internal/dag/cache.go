@@ -132,6 +132,12 @@ func (kc *KubernetesCache) Insert(obj interface{}) bool {
 			kc.ingresses = make(map[Meta]*v1beta1.Ingress)
 		}
 		kc.ingresses[m] = obj
+		// Adobe - emit warning for Ingress objects, which we intend to deprecate in the future
+		om := obj.GetObjectMeta()
+		kc.WithField("name", om.GetName()).
+			WithField("namespace", om.GetNamespace()).
+			WithField("kind", k8s.KindOf(obj)).
+			Warning("importing deprecated resource")
 		return true
 	case *extensionsv1beta1.Ingress:
 		ingress := new(v1beta1.Ingress)
