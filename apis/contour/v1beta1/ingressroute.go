@@ -64,7 +64,7 @@ type Route struct {
 
 	Timeout *Duration `json:"timeout,omitempty"`
 
-	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"` // Deprecated: do not use.
 }
 
 // TimeoutPolicy define the attributes associated with timeout
