@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/golang/protobuf/ptypes/any"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/projectcontour/contour/internal/dag"
 )
@@ -23,6 +24,24 @@ func PerFilterConfig(r *dag.Route) (conf map[string]*_struct.Struct) {
 		conf[k] = s
 
 		recurseIface(s, v)
+	}
+	return
+}
+
+func TypedPerFilterConfig(r *dag.Route) (conf map[string]*any.Any) {
+	if r.PerFilterConfig == nil {
+		return
+	}
+
+	conf = make(map[string]*any.Any)
+	var inInterface map[string]interface{}
+	inrec, _ := json.Marshal(r.PerFilterConfig)
+	json.Unmarshal(inrec, &inInterface)
+
+	for k, v := range inInterface {
+		s := new(_struct.Struct)
+		recurseIface(s, v)
+		conf[k] = toAny(s)
 	}
 	return
 }

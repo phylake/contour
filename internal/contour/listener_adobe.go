@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"os"
 
+	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 )
 
@@ -53,10 +57,13 @@ func init() {
 	if len(structFields) > 0 {
 		ipAllowDenyListenerFilter = new(envoy_api_v2_listener.ListenerFilter)
 		ipAllowDenyListenerFilter.Name = "envoy.listener.ip_allow_deny"
-		ipAllowDenyListenerFilter.ConfigType = &envoy_api_v2_listener.ListenerFilter_Config{
-			Config: &_struct.Struct{
-				Fields: structFields,
-			},
+		ipAllowDenyListenerFilter.ConfigType = &envoy_api_v2_listener.ListenerFilter_TypedConfig{
+			TypedConfig: toAny(&udpa_type_v1.TypedStruct{
+				TypeUrl: "envoy.config.filter.network.ip_allow_deny.v2.IpAllowDeny",
+				Value: &_struct.Struct{
+					Fields: structFields,
+				},
+			}),
 		}
 	}
 }
@@ -91,6 +98,14 @@ func cidrToProto(cidrs []Cidr, key string, structFields map[string]*_struct.Valu
 			},
 		})
 	}
+}
+
+func toAny(pb proto.Message) *any.Any {
+	a, err := ptypes.MarshalAny(pb)
+	if err != nil {
+		panic(err.Error())
+	}
+	return a
 }
 
 func CustomListenerFilters() []*envoy_api_v2_listener.ListenerFilter {

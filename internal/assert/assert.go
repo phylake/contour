@@ -41,7 +41,7 @@ func (a Assert) Equal(want, got interface{}) {
 	a.t.Helper()
 	opts := []cmp.Option{
 		cmpopts.IgnoreFields(v2.DiscoveryResponse{}, "VersionInfo", "Nonce"),
-		cmpopts.AcyclicTransformer("UnmarshalAny", unmarshalAny),
+		cmp.Transformer("UnmarshalAny", unmarshalAny),
 		// errors to be equal only if both are nil or both are non-nil.
 		cmp.Comparer(func(x, y error) bool {
 			return (x == nil) == (y == nil)

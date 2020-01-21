@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -19,6 +20,7 @@ import (
 	http "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_type "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/projectcontour/contour/adobe"
@@ -191,8 +193,8 @@ func TestAdobeRoutePerFilterConfigAllowDeny(t *testing.T) {
 		Match:  routePrefix("/"),
 		Action: routecluster("default/ws/80/da39a3ee5e"),
 	}
-	r.PerFilterConfig = map[string]*_struct.Struct{
-		"envoy.filters.http.ip_allow_deny": {
+	r.TypedPerFilterConfig = map[string]*any.Any{
+		"envoy.filters.http.ip_allow_deny": toAny(t, &_struct.Struct{
 			Fields: map[string]*_struct.Value{
 				"allow_cidrs": {
 					Kind: &_struct.Value_ListValue{
@@ -265,7 +267,7 @@ func TestAdobeRoutePerFilterConfigAllowDeny(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	}
 
 	assertRDS(t, cc, "1", virtualhosts(
@@ -321,8 +323,8 @@ func TestAdobeRoutePerFilterConfigHeaderSize(t *testing.T) {
 		Match:  routePrefix("/"),
 		Action: routecluster("default/ws/80/da39a3ee5e"),
 	}
-	r.PerFilterConfig = map[string]*_struct.Struct{
-		"envoy.filters.http.header_size": {
+	r.TypedPerFilterConfig = map[string]*any.Any{
+		"envoy.filters.http.header_size": toAny(t, &_struct.Struct{
 			Fields: map[string]*_struct.Value{
 				"header_size": {
 					Kind: &_struct.Value_StructValue{
@@ -338,7 +340,7 @@ func TestAdobeRoutePerFilterConfigHeaderSize(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	}
 
 	assertRDS(t, cc, "1", virtualhosts(
@@ -402,8 +404,8 @@ func TestAdobeRoutePerFilterConfigOrdered(t *testing.T) {
 		Match:  routePrefix("/"),
 		Action: routecluster("default/ws/80/da39a3ee5e"),
 	}
-	r.PerFilterConfig = map[string]*_struct.Struct{
-		"envoy.filters.http.header_size": {
+	r.TypedPerFilterConfig = map[string]*any.Any{
+		"envoy.filters.http.header_size": toAny(t, &_struct.Struct{
 			Fields: map[string]*_struct.Value{
 				"header_size": {
 					Kind: &_struct.Value_StructValue{
@@ -419,8 +421,8 @@ func TestAdobeRoutePerFilterConfigOrdered(t *testing.T) {
 					},
 				},
 			},
-		},
-		"envoy.filters.http.ip_allow_deny": {
+		}),
+		"envoy.filters.http.ip_allow_deny": toAny(t, &_struct.Struct{
 			Fields: map[string]*_struct.Value{
 				"allow_cidrs": {
 					Kind: &_struct.Value_ListValue{
@@ -449,7 +451,7 @@ func TestAdobeRoutePerFilterConfigOrdered(t *testing.T) {
 					},
 				},
 			},
-		},
+		}),
 	}
 
 	assertRDS(t, cc, "1", virtualhosts(
@@ -1574,21 +1576,29 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 										},
 										{
 											Name: "envoy.filters.http.health_check_simple",
-											ConfigType: &http.HttpFilter_Config{
-												Config: &_struct.Struct{
-													Fields: map[string]*_struct.Value{
-														"path": {Kind: &_struct.Value_StringValue{StringValue: "/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
+											ConfigType: &http.HttpFilter_TypedConfig{
+												TypedConfig: toAny(t, &udpa_type_v1.TypedStruct{
+													TypeUrl: "envoy.config.filter.http.health_check_simple.v2.HealthCheckSimple",
+													Value: &_struct.Struct{
+														Fields: map[string]*_struct.Value{
+															"path": {Kind: &_struct.Value_StringValue{StringValue: "/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
+														},
 													},
-												}},
+												}),
+											},
 										},
 										{
 											Name: "envoy.filters.http.header_size",
-											ConfigType: &http.HttpFilter_Config{
-												Config: &_struct.Struct{
-													Fields: map[string]*_struct.Value{
-														"max_bytes": {Kind: &_struct.Value_NumberValue{NumberValue: 64 * 1024}},
+											ConfigType: &http.HttpFilter_TypedConfig{
+												TypedConfig: toAny(t, &udpa_type_v1.TypedStruct{
+													TypeUrl: "envoy.config.filter.http.header_size.v2.HeaderSize",
+													Value: &_struct.Struct{
+														Fields: map[string]*_struct.Value{
+															"max_bytes": {Kind: &_struct.Value_NumberValue{NumberValue: 64 * 1024}},
+														},
 													},
-												}},
+												}),
+											},
 										},
 										{
 											Name: "envoy.router",

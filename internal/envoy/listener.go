@@ -17,6 +17,7 @@ import (
 	"sort"
 	"time"
 
+	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -102,20 +103,30 @@ func HTTPConnectionManager(routename string, accesslogger []*accesslog.AccessLog
 					},
 					{
 						Name: "envoy.filters.http.health_check_simple",
-						ConfigType: &http.HttpFilter_Config{&_struct.Struct{
-							Fields: map[string]*_struct.Value{
-								"path": {Kind: &_struct.Value_StringValue{"/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
-							},
-						}},
+						ConfigType: &http.HttpFilter_TypedConfig{
+							TypedConfig: toAny(&udpa_type_v1.TypedStruct{
+								TypeUrl: "envoy.config.filter.http.health_check_simple.v2.HealthCheckSimple",
+								Value: &_struct.Struct{
+									Fields: map[string]*_struct.Value{
+										"path": {Kind: &_struct.Value_StringValue{"/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
+									},
+								},
+							}),
+						},
 					},
 					{
 						Name: "envoy.filters.http.header_size",
-						ConfigType: &http.HttpFilter_Config{&_struct.Struct{
-							Fields: map[string]*_struct.Value{
-								// https://github.com/phylake/envoy/commit/70e6900f46273472bf3932421b01691551df8362
-								"max_bytes": {Kind: &_struct.Value_NumberValue{64 * 1024}},
-							},
-						}},
+						ConfigType: &http.HttpFilter_TypedConfig{
+							TypedConfig: toAny(&udpa_type_v1.TypedStruct{
+								TypeUrl: "envoy.config.filter.http.header_size.v2.HeaderSize",
+								Value: &_struct.Struct{
+									Fields: map[string]*_struct.Value{
+										// https://github.com/phylake/envoy/commit/70e6900f46273472bf3932421b01691551df8362
+										"max_bytes": {Kind: &_struct.Value_NumberValue{64 * 1024}},
+									},
+								},
+							}),
+						},
 					},
 					{
 						Name: wellknown.Router,
