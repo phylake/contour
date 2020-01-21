@@ -16,6 +16,12 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.1.0-2.2.0-adobe
+
+- protobuf updates
+- added warning for future unsupported annotations
+- added warning for Route.IdleTimeout deprecation
+
 ## v1.1.0-2.1.0-adobe
 
 - built from contour v1.1.0
