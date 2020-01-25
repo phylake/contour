@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v2cc3c38-2.1.1-adobe
+
+- fix cds sync issue causing the update to potentially wait indefinitely (backported from v1.1.0-2.2.1-adobe)
+
 ## v2cc3c38-2.1.0-adobe
 
 - whitelisted `perFilterConfig` fields

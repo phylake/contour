@@ -147,7 +147,7 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 			// Skip this response entirely if we already sent the exact same data previously
 			if versionInfo == req.VersionInfo {
 				// After a contour restart, populate our cache (or ordering won't work)
-				// use previous_resources for now, thought that could be replaced with a bool
+				// use previous_resources for now, though that could be replaced with a bool
 				// todo(lrouquet) when deprecating previous_resources
 				if len(previous_resources) == 0 {
 					cacheData(stId, resources)
@@ -155,6 +155,12 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 				}
 				log.WithField("count", len(resources)).Info("skip")
 				goto WaitForChange
+			}
+
+			// Ensure we send this update in the right order
+			if synchronizeXDS(req, r, log) {
+				// resources may have changed while waiting for synchronization - refetch the latest
+				resources = getResources(r, req.ResourceNames)
 			}
 
 			any, err := toAny(r.TypeURL(), resources)
@@ -168,9 +174,6 @@ func (xh *xdsHandler) stream(st grpcStream) (err error) {
 				TypeUrl:     r.TypeURL(),
 				Nonce:       strconv.Itoa(last),
 			}
-
-			// Ensure we send this update in the right order
-			synchronizeXDS(req, resources, log)
 
 			if err := st.Send(resp); err != nil {
 				return err
