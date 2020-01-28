@@ -32,9 +32,10 @@ var mutex = &sync.Mutex{}
 const (
 	waitSleepTime = 100 * time.Millisecond
 	maxWaitTime   = 2 * time.Minute
+	// time is stored as nanoseconds: any adjustments to the above consts should
+	// ensure maxWaitCount fits into 16 bits (e.g. < 32767)
+	maxWaitCount = int16(maxWaitTime / waitSleepTime)
 )
-
-var maxWaitCount = int16(maxWaitTime / waitSleepTime)
 
 // "In order for EDS resources to be known or tracked by Envoy, there must exist an applied Cluster definition (e.g. sourced via CDS).
 // A similar relationship exists between RDS and Listeners (e.g. sourced via LDS).""
