@@ -1393,6 +1393,7 @@ func TestAdobeClusterHealthcheck(t *testing.T) {
 // remove IdleTimeout
 // remove PreserveExternalRequestId
 // add tracing
+// add MergeSlashes
 
 func TestAdobeListenerSocketOptions(t *testing.T) {
 	rh, cc, done := setup(t)
@@ -1611,6 +1612,7 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 									UseRemoteAddress: protobuf.Bool(true),
 									NormalizePath:    protobuf.Bool(true),
 									RequestTimeout:   protobuf.Duration(0),
+									MergeSlashes:     true,
 									Tracing: &http.HttpConnectionManager_Tracing{
 										OperationName:   http.HttpConnectionManager_Tracing_EGRESS,
 										ClientSampling:  &envoy_type.Percent{Value: 25},

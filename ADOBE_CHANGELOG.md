@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.1.0-2.3.0-adobe
+
+- set `merge_slashes=true` on HTTP connection manager
+
 ## v1.1.0-2.2.1-adobe
 
 - fix cds sync issue causing the update to potentially wait indefinitely

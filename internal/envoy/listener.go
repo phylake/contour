@@ -141,6 +141,7 @@ func HTTPConnectionManager(routename string, accesslogger []*accesslog.AccessLog
 				UseRemoteAddress: protobuf.Bool(true),
 				NormalizePath:    protobuf.Bool(true),
 				RequestTimeout:   protobuf.Duration(requestTimeout),
+				MergeSlashes:     true,
 				Tracing:          tracing(),
 			}),
 		},
