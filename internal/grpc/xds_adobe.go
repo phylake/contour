@@ -35,6 +35,11 @@ const (
 	// time is stored as nanoseconds: any adjustments to the above consts should
 	// ensure maxWaitCount fits into 16 bits (e.g. < 32767)
 	maxWaitCount = int16(maxWaitTime / waitSleepTime)
+
+	// log throttling config
+	logInterval = 1 * time.Second
+	// divisor is used in the modulo operation
+	logDivisor = int16(logInterval / waitSleepTime)
 )
 
 // "In order for EDS resources to be known or tracked by Envoy, there must exist an applied Cluster definition (e.g. sourced via CDS).
@@ -63,7 +68,7 @@ func synchronizeXDS(req *envoy_api_v2.DiscoveryRequest, res Resource, log *logru
 				freeToGo = true
 				break
 			}
-			log.WithField("wait_count", waitCount).WithField("wait_count_max", maxWaitCount).Info("wait_on_cds")
+			throttledLog(waitCount, log, "wait_on_cds")
 
 		case envoy.ListenerType:
 			// After CDS and EDS
@@ -75,10 +80,10 @@ func synchronizeXDS(req *envoy_api_v2.DiscoveryRequest, res Resource, log *logru
 			}
 			// Split these logs to ease potential troubleshooting
 			if len(streamCache[streamId{TypeUrl: envoy.ClusterType, NodeId: req.Node.Id}]) > 0 {
-				log.WithField("wait_count", waitCount).WithField("wait_count_max", maxWaitCount).Info("wait_on_cds")
+				throttledLog(waitCount, log, "wait_on_cds")
 			}
 			if len(streamCache[streamId{TypeUrl: envoy.EndpointType, NodeId: req.Node.Id}]) > 0 {
-				log.WithField("wait_count", waitCount).WithField("wait_count_max", maxWaitCount).Info("wait_on_eds")
+				throttledLog(waitCount, log, "wait_on_eds")
 			}
 
 		case envoy.RouteType:
@@ -110,13 +115,13 @@ func synchronizeXDS(req *envoy_api_v2.DiscoveryRequest, res Resource, log *logru
 						break
 					}
 					unknown := diff(envoy.ClusterType, req.Node.Id, clusters)
-					log.WithField("unknown", unknown).WithField("wait_count", waitCount).WithField("wait_count_max", maxWaitCount).Info("wait_on_cds")
+					throttledLogWithFields(waitCount, log, logrus.Fields{"unknown": unknown}, "wait_on_cds")
 					break
 
 					// TODO: also check route.GetVhds()
 				}
 			}
-			log.WithField("wait_count", waitCount).WithField("wait_count_max", maxWaitCount).Info("wait_on_lds")
+			throttledLog(waitCount, log, "wait_on_lds")
 
 		case envoy.SecretType:
 			// uh? let's do after listener
@@ -288,4 +293,14 @@ func getResources(r Resource, names []string) (resources []proto.Message) {
 		resources = r.Query(names)
 	}
 	return resources
+}
+
+func throttledLog(wc int16, log *logrus.Entry, msg string) {
+	throttledLogWithFields(wc, log, logrus.Fields{}, msg)
+}
+
+func throttledLogWithFields(wc int16, log *logrus.Entry, fields logrus.Fields, msg string) {
+	if wc%logDivisor == 0 {
+		log.WithField("wait_count", wc).WithField("wait_count_max", maxWaitCount).WithFields(fields).Info(msg)
+	}
 }

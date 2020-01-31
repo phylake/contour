@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.1.0-2.2.2-adobe
+
+- throttle logs when waiting for xDS updates
+
 ## v1.1.0-2.2.1-adobe
 
 - fix cds sync issue causing the update to potentially wait indefinitely
