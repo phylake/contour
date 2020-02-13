@@ -3,6 +3,7 @@ package main
 import (
 	clientset "github.com/projectcontour/contour/apis/generated/clientset/versioned"
 	"github.com/projectcontour/contour/internal/contour"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -60,7 +61,12 @@ func initCache(client *kubernetes.Clientset, contourClient *clientset.Clientset,
 	}
 
 	// Secrets
-	secrets, err := client.CoreV1().Secrets("").List(metav1.ListOptions{})
+	// only eager load tls secrets as they are the most used (if not the only one)
+	// opaque and other generic secrets will still be discovered via the informer
+	// see internal/dag/secrets.go:isValidSecret()
+	secrets, err := client.CoreV1().Secrets("").List(metav1.ListOptions{
+		FieldSelector: "type=" + string(v1.SecretTypeTLS),
+	})
 	if err != nil {
 		return err
 	}
@@ -70,7 +76,7 @@ func initCache(client *kubernetes.Clientset, contourClient *clientset.Clientset,
 			sCached++
 		}
 	}
-	eh.WithField("count", sCached).WithField("found", len(secrets.Items)).Info("secrets")
+	eh.WithField("count", sCached).WithField("found", len(secrets.Items)).WithField("type", v1.SecretTypeTLS).Info("secrets")
 
 	// Endpoints
 	endpoints, err := client.CoreV1().Endpoints("").List(metav1.ListOptions{})
