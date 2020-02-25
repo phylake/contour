@@ -20,6 +20,14 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 - set `merge_slashes=true` on HTTP connection manager
 
+## v1.1.0-2.2.3-adobe
+
+- eager load tls secrets only
+
+## v1.1.0-2.2.2-adobe
+
+- throttle logs when waiting for xDS updates
+
 ## v1.1.0-2.2.1-adobe
 
 - fix cds sync issue causing the update to potentially wait indefinitely
