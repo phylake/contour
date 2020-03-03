@@ -154,16 +154,6 @@ func (kc *KubernetesCache) Insert(obj interface{}) bool {
 		if class == "" || class != kc.ingressClass() {
 			return false
 		}
-		// Adobe - route.IdleTimeout is deprecated - emit warning if found
-		for _, r := range obj.Spec.Routes {
-			if r.IdleTimeout != nil {
-				om := obj.GetObjectMeta()
-				kc.WithField("name", om.GetName()).
-					WithField("namespace", om.GetNamespace()).
-					WithField("kind", k8s.KindOf(obj)).
-					Warning("using deprecated property IdleTimeout on Route")
-			}
-		}
 		m := toMeta(obj)
 		if kc.ingressroutes == nil {
 			kc.ingressroutes = make(map[Meta]*ingressroutev1.IngressRoute)
