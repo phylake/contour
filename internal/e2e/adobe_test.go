@@ -1212,6 +1212,9 @@ func TestAdobeClusterCircuitBreakersDrainConnections(t *testing.T) {
 	c := cluster("default/ws/80/da39a3ee5e", "default/ws", "default_ws_80")
 	c.CircuitBreakers = adobe.CircuitBreakers
 	c.DrainConnectionsOnHostRemoval = true
+	c.CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
+		IdleTimeout: protobuf.Duration(58 * time.Second),
+	}
 
 	protos := []proto.Message{c}
 
@@ -1294,16 +1297,25 @@ func TestAdobeClusterLbPolicy(t *testing.T) {
 	cCookie.CircuitBreakers = adobe.CircuitBreakers
 	cCookie.DrainConnectionsOnHostRemoval = true
 	cCookie.LbPolicy = v2.Cluster_ROUND_ROBIN
+	cCookie.CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
+		IdleTimeout: protobuf.Duration(58 * time.Second),
+	}
 
 	cRingHash := cluster("default/ws-ringhash/80/40633a6ca9", "default/ws-ringhash", "default_ws-ringhash_80")
 	cRingHash.CircuitBreakers = adobe.CircuitBreakers
 	cRingHash.DrainConnectionsOnHostRemoval = true
 	cRingHash.LbPolicy = v2.Cluster_RING_HASH
+	cRingHash.CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
+		IdleTimeout: protobuf.Duration(58 * time.Second),
+	}
 
 	cMagLev := cluster("default/ws-maglev/80/843e4ded8f", "default/ws-maglev", "default_ws-maglev_80")
 	cMagLev.CircuitBreakers = adobe.CircuitBreakers
 	cMagLev.DrainConnectionsOnHostRemoval = true
 	cMagLev.LbPolicy = v2.Cluster_MAGLEV
+	cMagLev.CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
+		IdleTimeout: protobuf.Duration(58 * time.Second),
+	}
 
 	protos := []proto.Message{cCookie, cMagLev, cRingHash} //ordered
 
@@ -1373,6 +1385,9 @@ func TestAdobeClusterHealthcheck(t *testing.T) {
 				},
 			},
 		},
+	}
+	c.CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
+		IdleTimeout: protobuf.Duration(58 * time.Second),
 	}
 
 	protos := []proto.Message{c}

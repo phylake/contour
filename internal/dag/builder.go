@@ -18,11 +18,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/google/go-cmp/cmp"
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	projcontour "github.com/projectcontour/contour/apis/projectcontour/v1"
@@ -979,10 +981,17 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				HashPolicy:      route.HashPolicy,
 				PerFilterConfig: route.PerFilterConfig,
 			}
-			// TODO(bcook) deprecate this
+
 			if route.IdleTimeout != nil {
-				r.IdleTimeout = &route.IdleTimeout.Duration
+				if d, err := ptypes.Duration(&route.IdleTimeout.Duration); err == nil {
+					if d > time.Hour {
+						r.IdleTimeout = ptypes.DurationProto(time.Hour)
+					} else {
+						r.IdleTimeout = &route.IdleTimeout.Duration
+					}
+				}
 			}
+
 			if route.Timeout != nil {
 				r.Timeout = &route.Timeout.Duration
 			}
@@ -1018,9 +1027,21 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 					UpstreamValidation: uv,
 					Protocol:           s.Protocol,
 				}
+
 				if service.IdleTimeout != nil {
-					c.IdleTimeout = &service.IdleTimeout.Duration
+					if d, err := ptypes.Duration(&service.IdleTimeout.Duration); err == nil {
+						if d > time.Hour {
+							c.IdleTimeout = ptypes.DurationProto(time.Hour)
+						} else {
+							c.IdleTimeout = &service.IdleTimeout.Duration
+						}
+					}
 				}
+
+				if c.IdleTimeout == nil {
+					c.IdleTimeout = ptypes.DurationProto(58 * time.Second)
+				}
+
 				r.Clusters = append(r.Clusters, c)
 			}
 
