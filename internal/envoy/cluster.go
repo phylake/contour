@@ -25,6 +25,7 @@ import (
 	envoy_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_type "github.com/envoyproxy/go-control-plane/envoy/type"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/projectcontour/contour/internal/dag"
 	"github.com/projectcontour/contour/internal/protobuf"
@@ -69,10 +70,11 @@ func Cluster(c *dag.Cluster) *v2.Cluster {
 		cluster.LoadAssignment = StaticClusterLoadAssignment(service)
 	}
 
-	if c.IdleTimeout != nil {
-		cluster.CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
-			IdleTimeout: c.IdleTimeout,
-		}
+	if c.IdleTimeout == nil {
+		c.IdleTimeout = ptypes.DurationProto(58 * time.Second)
+	}
+	cluster.CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
+		IdleTimeout: c.IdleTimeout,
 	}
 
 	// Drain connections immediately if using healthchecks and the endpoint is known to be removed

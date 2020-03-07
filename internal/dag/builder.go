@@ -1038,10 +1038,6 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 					}
 				}
 
-				if c.IdleTimeout == nil {
-					c.IdleTimeout = ptypes.DurationProto(58 * time.Second)
-				}
-
 				r.Clusters = append(r.Clusters, c)
 			}
 
