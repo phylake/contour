@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/projectcontour/contour/adobe"
 
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -5931,6 +5932,8 @@ func TestDAGInsert(t *testing.T) {
 			}
 			opts := []cmp.Option{
 				cmp.AllowUnexported(VirtualHost{}),
+				// add here to prevent import cycle
+				cmpopts.IgnoreFields(Cluster{}, "IdleTimeout"),
 			}
 			opts = append(opts, adobe.IgnoreFields()...)
 			if diff := cmp.Diff(want, got, opts...); diff != "" {
