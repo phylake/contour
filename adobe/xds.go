@@ -5,9 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"testing"
+	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoy_types "github.com/envoyproxy/go-control-plane/envoy/type"
 	envoy "github.com/envoyproxy/go-control-plane/pkg/cache"
@@ -24,6 +26,7 @@ const (
 // CDS customization
 // add CircuitBreakers
 // set DrainConnectionsOnHostRemoval
+// add IdleTimeout via CommonHttpProtocolOptions
 // cluster.IdleTimeout (TODO test)
 // add ExpectedStatuses
 
@@ -34,6 +37,10 @@ var (
 			MaxConnections: protobuf.UInt32(1000000),
 			MaxRequests:    protobuf.UInt32(1000000),
 		}},
+	}
+
+	CommonHttpProtocolOptions = &envoy_api_v2_core.HttpProtocolOptions{
+		IdleTimeout: protobuf.Duration(58 * time.Second),
 	}
 
 	ExpectedStatuses = []*envoy_types.Int64Range{
@@ -74,6 +81,7 @@ func AdobefyXDS(t *testing.T, resp *v2.DiscoveryResponse) {
 			cluster := c.(*v2.Cluster)
 			cluster.CircuitBreakers = CircuitBreakers
 			cluster.DrainConnectionsOnHostRemoval = true
+			cluster.CommonHttpProtocolOptions = CommonHttpProtocolOptions
 			if cluster.HealthChecks != nil {
 				for _, h := range cluster.HealthChecks {
 					h.GetHttpHealthCheck().ExpectedStatuses = ExpectedStatuses
