@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.1.0-2.5.0-adobe
+
+- set SO_PRIORITY = 6
+- fix some test broken in v1.1.0-2.4.0-adobe
+
 ## v1.1.0-2.4.0-adobe
 
 - 1 hour limit on upstream and downstream idle timeouts

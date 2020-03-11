@@ -49,6 +49,9 @@ func socketOptions() (opts []*envoy_api_v2_core.SocketOption) {
 		// https://github.com/torvalds/linux/blob/v4.19/arch/ia64/include/uapi/asm/socket.h#L29
 		SO_KEEPALIVE = 9
 
+		// https://github.com/torvalds/linux/blob/v4.19/arch/ia64/include/uapi/asm/socket.h#L32
+		SO_PRIORITY = 12
+
 		// https://github.com/torvalds/linux/blob/v4.19/include/uapi/linux/in.h#L37-L38
 		IPPROTO_TCP = 6
 
@@ -57,8 +60,17 @@ func socketOptions() (opts []*envoy_api_v2_core.SocketOption) {
 		TCP_KEEPINTVL = 5
 		TCP_KEEPCNT   = 6
 	)
+
+	opts = make([]*envoy_api_v2_core.SocketOption, 0)
+
+	opts = append(opts, &envoy_api_v2_core.SocketOption{
+		Level: SOL_SOCKET,
+		Name:  SO_PRIORITY,
+		Value: &envoy_api_v2_core.SocketOption_IntValue{6},
+		State: envoy_api_v2_core.SocketOption_STATE_PREBIND,
+	})
+
 	if enabled, err := strconv.ParseBool(os.Getenv("TCP_KEEPALIVE_ENABLED")); enabled && err == nil {
-		opts = make([]*envoy_api_v2_core.SocketOption, 0)
 
 		opts = append(opts, &envoy_api_v2_core.SocketOption{
 			Level: SOL_SOCKET,
