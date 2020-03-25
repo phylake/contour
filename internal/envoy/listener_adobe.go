@@ -63,12 +63,14 @@ func socketOptions() (opts []*envoy_api_v2_core.SocketOption) {
 
 	opts = make([]*envoy_api_v2_core.SocketOption, 0)
 
-	opts = append(opts, &envoy_api_v2_core.SocketOption{
-		Level: SOL_SOCKET,
-		Name:  SO_PRIORITY,
-		Value: &envoy_api_v2_core.SocketOption_IntValue{6},
-		State: envoy_api_v2_core.SocketOption_STATE_PREBIND,
-	})
+	if enabled, err := strconv.ParseBool(os.Getenv("SO_PRIORITY")); enabled && err == nil {
+		opts = append(opts, &envoy_api_v2_core.SocketOption{
+			Level: SOL_SOCKET,
+			Name:  SO_PRIORITY,
+			Value: &envoy_api_v2_core.SocketOption_IntValue{6},
+			State: envoy_api_v2_core.SocketOption_STATE_PREBIND,
+		})
+	}
 
 	if enabled, err := strconv.ParseBool(os.Getenv("TCP_KEEPALIVE_ENABLED")); enabled && err == nil {
 
@@ -106,5 +108,10 @@ func socketOptions() (opts []*envoy_api_v2_core.SocketOption) {
 			})
 		}
 	}
+
+	if len(opts) == 0 {
+		opts = nil
+	}
+
 	return
 }

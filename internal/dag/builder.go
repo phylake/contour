@@ -986,6 +986,9 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				if d, err := ptypes.Duration(&route.IdleTimeout.Duration); err == nil {
 					if d > time.Hour {
 						r.IdleTimeout = ptypes.DurationProto(time.Hour)
+					} else if d <= 0 {
+						sw.SetInvalid("route %q: idle timeout can not be disabled", route.Match)
+						return
 					} else {
 						r.IdleTimeout = &route.IdleTimeout.Duration
 					}
@@ -993,7 +996,14 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 			}
 
 			if route.Timeout != nil {
-				r.Timeout = &route.Timeout.Duration
+				if d, err := ptypes.Duration(&route.Timeout.Duration); err == nil {
+					if d < 0 {
+						sw.SetInvalid("route %q: timeout value must be >= 0", route.Match)
+						return
+					} else {
+						r.Timeout = &route.Timeout.Duration
+					}
+				}
 			}
 
 			for _, service := range route.Services {
@@ -1032,6 +1042,9 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 					if d, err := ptypes.Duration(&service.IdleTimeout.Duration); err == nil {
 						if d > time.Hour {
 							c.IdleTimeout = ptypes.DurationProto(time.Hour)
+						} else if d <= 0 {
+							sw.SetInvalid("route: %q service %q: idle timeout can not be disabled", route.Match, service.Name)
+							return
 						} else {
 							c.IdleTimeout = &service.IdleTimeout.Duration
 						}
