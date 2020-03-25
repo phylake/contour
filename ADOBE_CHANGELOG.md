@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.1.0-2.6.0-adobe
+
+- invalidate IRs with idle timeouts <= 0
+- conditionally set SO_PRIORITY = 6
+
 ## v1.1.0-2.5.0-adobe
 
 - set SO_PRIORITY = 6
