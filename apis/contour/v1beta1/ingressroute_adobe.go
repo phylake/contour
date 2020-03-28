@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	ptypes "github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/projectcontour/contour/internal/protobuf"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -15,7 +16,14 @@ type Duration struct {
 }
 
 func (recv Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(recv.String())
+	// convert the protobuf.Duration back to a time.Duration
+	timeDuration, err := ptypes.Duration(&recv.Duration)
+	// if there was an error with the conversion, return the
+	// marshalled duration.Duration instead (old behavior)
+	if err != nil {
+		return json.Marshal(recv.String())
+	}
+	return json.Marshal(timeDuration.String())
 }
 
 func (recv *Duration) UnmarshalJSON(bs []byte) (err error) {
