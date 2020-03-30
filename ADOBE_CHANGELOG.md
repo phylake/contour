@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.1.0-2.6.1-adobe
+
+- fix for rendering protobuf Duration objects when marshaling JSON
+
 ## v1.1.0-2.6.0-adobe
 
 - invalidate IRs with idle timeouts <= 0
