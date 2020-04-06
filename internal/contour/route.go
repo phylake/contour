@@ -125,13 +125,15 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 						// to a SecureVirtualHost that requires upgrade, this logic can move to
 						// envoy.RouteRoute.
 						routes = append(routes, &envoy_api_v2_route.Route{
-							Match:  envoy.RouteMatch(route),
-							Action: envoy.UpgradeHTTPS(),
+							Match:                envoy.RouteMatch(route),
+							Action:               envoy.UpgradeHTTPS(),
+							TypedPerFilterConfig: envoy.TypedPerFilterConfig(route),
 						})
 					} else {
 						rt := &envoy_api_v2_route.Route{
-							Match:  envoy.RouteMatch(route),
-							Action: envoy.RouteRoute(route),
+							Match:                envoy.RouteMatch(route),
+							Action:               envoy.RouteRoute(route),
+							TypedPerFilterConfig: envoy.TypedPerFilterConfig(route),
 						}
 						if route.RequestHeadersPolicy != nil {
 							rt.RequestHeadersToAdd = envoy.HeaderValueList(route.RequestHeadersPolicy.Set, false)
@@ -161,8 +163,9 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 					}
 
 					rt := &envoy_api_v2_route.Route{
-						Match:  envoy.RouteMatch(route),
-						Action: envoy.RouteRoute(route),
+						Match:                envoy.RouteMatch(route),
+						Action:               envoy.RouteRoute(route),
+						TypedPerFilterConfig: envoy.TypedPerFilterConfig(route),
 					}
 					if route.RequestHeadersPolicy != nil {
 						rt.RequestHeadersToAdd = envoy.HeaderValueList(route.RequestHeadersPolicy.Set, false)

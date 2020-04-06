@@ -452,6 +452,8 @@ func TestAnnotationKindValidation(t *testing.T) {
 	}
 
 	// Check corner case combinations for different types.
+	// Adobe - annotations are restricted - skip this test
+	t.SkipNow()
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			for k, s := range tc.annotations {

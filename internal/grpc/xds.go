@@ -78,6 +78,10 @@ func (xh *xdsHandler) stream(st grpcStream) error {
 	last := -1
 	ctx := st.Context()
 
+	// A cache of resources last sent on this specific stream
+	// Note that this will reset if the stream is terminated (a good thing)
+	var previous_resources []proto.Message
+
 	// now stick in this loop until the client disconnects.
 	for {
 		// first we wait for the request from Envoy, this is part of
@@ -107,6 +111,17 @@ func (xh *xdsHandler) stream(st grpcStream) error {
 		}
 
 		log = log.WithField("resource_names", req.ResourceNames).WithField("type_url", req.TypeUrl)
+
+		nodeID := "envoy-node"
+		if req.Node != nil {
+			nodeID = req.Node.Id
+		}
+		stId := streamId{
+			TypeUrl: req.TypeUrl,
+			NodeId:  nodeID,
+		}
+
+	WaitForChange:
 		log.Info("stream_wait")
 
 		// now we wait for a notification, if this is the first request received on this
@@ -129,13 +144,34 @@ func (xh *xdsHandler) stream(st grpcStream) error {
 				resources = r.Query(req.ResourceNames)
 			}
 
+			versionInfo := hash(resources)
+
+			// Skip this response entirely if we already sent the exact same data previously
+			if versionInfo == req.VersionInfo {
+				// After a contour restart, populate our cache (or ordering won't work)
+				// use previous_resources for now, though that could be replaced with a bool
+				// todo(lrouquet) when deprecating previous_resources
+				if len(previous_resources) == 0 {
+					cacheData(stId, resources)
+					previous_resources = resources
+				}
+				log.WithField("count", len(resources)).Info("skip")
+				goto WaitForChange
+			}
+
+			// Ensure we send this update in the right order
+			if synchronizeXDS(req, r, log) {
+				// resources may have changed while waiting for synchronization - refetch the latest
+				resources = getResources(r, req.ResourceNames)
+			}
+
 			any, err := toAny(r.TypeURL(), resources)
 			if err != nil {
 				return done(log, err)
 			}
 
 			resp := &envoy_api_v2.DiscoveryResponse{
-				VersionInfo: strconv.Itoa(last),
+				VersionInfo: versionInfo,
 				Resources:   any,
 				TypeUrl:     r.TypeURL(),
 				Nonce:       strconv.Itoa(last),
@@ -144,6 +180,13 @@ func (xh *xdsHandler) stream(st grpcStream) error {
 			if err := st.Send(resp); err != nil {
 				return done(log, err)
 			}
+
+			// re-add response log
+			log.WithField("count", len(resources)).WithField("version_info_resp", versionInfo).Info("response")
+
+			// cache what was sent
+			cacheData(stId, resources)
+			previous_resources = resources
 
 		case <-ctx.Done():
 			return done(log, ctx.Err())

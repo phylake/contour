@@ -16,6 +16,8 @@ package contour
 import (
 	"testing"
 
+	"github.com/projectcontour/contour/adobe"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -1058,6 +1060,9 @@ func TestListenerVisit(t *testing.T) {
 	}
 
 	for name, tc := range tests {
+		if adobe.ShouldSkipTest(name) {
+			t.SkipNow()
+		}
 		t.Run(name, func(t *testing.T) {
 			root := buildDAG(t, tc.objs...)
 			got := visitListeners(root, &tc.ListenerVisitorConfig)

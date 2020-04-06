@@ -35,6 +35,9 @@ func TestIngressClassAnnotation(t *testing.T) {
 	})
 	defer done()
 
+	// Adobe - we enforce an annotation: skip the entire suite
+	t.SkipNow()
+
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kuard",

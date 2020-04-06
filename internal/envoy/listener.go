@@ -17,6 +17,7 @@ import (
 	"sort"
 	"time"
 
+	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -28,6 +29,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/projectcontour/contour/internal/dag"
 	"github.com/projectcontour/contour/internal/protobuf"
 )
@@ -52,6 +54,7 @@ func Listener(name, address string, port int, lf []*envoy_api_v2_listener.Listen
 		Name:            name,
 		Address:         SocketAddress(address, port),
 		ListenerFilters: lf,
+		SocketOptions:   socketOptions(),
 	}
 	if len(filters) > 0 {
 		l.FilterChains = append(
@@ -92,18 +95,42 @@ func HTTPConnectionManager(routename string, accesslogger []*accesslog.AccessLog
 						},
 					},
 				},
-				HttpFilters: []*http.HttpFilter{{
-					Name: wellknown.Gzip,
-				}, {
-					Name: wellknown.GRPCWeb,
-				}, {
-					Name: wellknown.Router,
-				}},
-				CommonHttpProtocolOptions: &envoy_api_v2_core.HttpProtocolOptions{
-					// Sets the idle timeout for HTTP connections to 60 seconds.
-					// This is chosen as a rough default to stop idle connections wasting resources,
-					// without stopping slow connections from being terminated too quickly.
-					IdleTimeout: protobuf.Duration(60 * time.Second),
+				GenerateRequestId:   protobuf.Bool(false),
+				MaxRequestHeadersKb: protobuf.UInt32(64),
+				HttpFilters: []*http.HttpFilter{
+					{
+						Name: "envoy.filters.http.ip_allow_deny",
+					},
+					{
+						Name: "envoy.filters.http.health_check_simple",
+						ConfigType: &http.HttpFilter_TypedConfig{
+							TypedConfig: toAny(&udpa_type_v1.TypedStruct{
+								TypeUrl: "envoy.config.filter.http.health_check_simple.v2.HealthCheckSimple",
+								Value: &_struct.Struct{
+									Fields: map[string]*_struct.Value{
+										"path": {Kind: &_struct.Value_StringValue{"/envoy_health_94eaa5a6ba44fc17d1da432d4a1e2d73"}},
+									},
+								},
+							}),
+						},
+					},
+					{
+						Name: "envoy.filters.http.header_size",
+						ConfigType: &http.HttpFilter_TypedConfig{
+							TypedConfig: toAny(&udpa_type_v1.TypedStruct{
+								TypeUrl: "envoy.config.filter.http.header_size.v2.HeaderSize",
+								Value: &_struct.Struct{
+									Fields: map[string]*_struct.Value{
+										// https://github.com/phylake/envoy/commit/70e6900f46273472bf3932421b01691551df8362
+										"max_bytes": {Kind: &_struct.Value_NumberValue{64 * 1024}},
+									},
+								},
+							}),
+						},
+					},
+					{
+						Name: wellknown.Router,
+					},
 				},
 				HttpProtocolOptions: &envoy_api_v2_core.Http1ProtocolOptions{
 					// Enable support for HTTP/1.0 requests that carry
@@ -114,9 +141,8 @@ func HTTPConnectionManager(routename string, accesslogger []*accesslog.AccessLog
 				UseRemoteAddress: protobuf.Bool(true),
 				NormalizePath:    protobuf.Bool(true),
 				RequestTimeout:   protobuf.Duration(requestTimeout),
-
-				// issue #1487 pass through X-Request-Id if provided.
-				PreserveExternalRequestId: true,
+				MergeSlashes:     true,
+				Tracing:          tracing(),
 			}),
 		},
 	}

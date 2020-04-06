@@ -18,6 +18,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/projectcontour/contour/adobe"
+
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/google/go-cmp/cmp"
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
@@ -6147,7 +6150,11 @@ func TestDAGInsert(t *testing.T) {
 					FieldLogger: testLogger(t),
 				},
 			}
+			if adobe.ShouldSkipTest(name) {
+				t.SkipNow()
+			}
 			for _, o := range tc.objs {
+				adobe.AdobefyObject(o)
 				builder.Source.Insert(o)
 			}
 			dag := builder.Build()
@@ -6163,7 +6170,10 @@ func TestDAGInsert(t *testing.T) {
 			}
 			opts := []cmp.Option{
 				cmp.AllowUnexported(VirtualHost{}),
+				// add here to prevent import cycle
+				cmpopts.IgnoreFields(Cluster{}, "IdleTimeout"),
 			}
+			opts = append(opts, adobe.IgnoreFields()...)
 			if diff := cmp.Diff(want, got, opts...); diff != "" {
 				t.Fatal(diff)
 			}
@@ -6457,6 +6467,7 @@ func TestDAGRootNamespaces(t *testing.T) {
 			}
 
 			for _, o := range tc.objs {
+				adobe.AdobefyObject(o)
 				builder.Source.Insert(o)
 			}
 			dag := builder.Build()

@@ -30,6 +30,8 @@ import (
 )
 
 func TestTimeoutPolicyRequestTimeout(t *testing.T) {
+	// Adobe - we override with our own
+	t.SkipNow()
 	rh, c, done := setup(t, func(reh *contour.EventHandler) {
 		reh.Builder.Source.IngressClass = "linkerd"
 	})
@@ -379,6 +381,8 @@ func TestTimeoutPolicyRequestTimeout(t *testing.T) {
 }
 
 func TestTimeoutPolicyIdleTimeout(t *testing.T) {
+	// Adobe - we override with our own
+	t.SkipNow()
 	rh, c, done := setup(t, func(reh *contour.EventHandler) {
 		reh.Builder.Source.IngressClass = "linkerd"
 	})

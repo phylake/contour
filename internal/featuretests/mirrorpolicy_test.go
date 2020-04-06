@@ -28,7 +28,8 @@ import (
 
 func TestMirrorPolicy(t *testing.T) {
 	rh, c, done := setup(t, func(reh *contour.EventHandler) {
-		reh.Builder.Source.IngressClass = "linkerd"
+		// why they do this, I don't know
+		// reh.Builder.Source.IngressClass = "linkerd"
 	})
 	defer done()
 

@@ -76,8 +76,9 @@ func (kc *KubernetesCache) matchesIngressClass(obj Object) bool {
 
 	switch objectClass {
 	// Unspecified ingress class always matches.
+	// Not at Adobe
 	case "":
-		return true
+		return false
 		// Specifying our ingress class also matches.
 	case targetClass:
 		return true
@@ -158,6 +159,12 @@ func (kc *KubernetesCache) Insert(obj interface{}) bool {
 				kc.ingresses = make(map[Meta]*v1beta1.Ingress)
 			}
 			kc.ingresses[m] = obj
+			// Adobe - emit warning for Ingress objects, which we intend to deprecate in the future
+			om := obj.GetObjectMeta()
+			kc.WithField("name", om.GetName()).
+				WithField("namespace", om.GetNamespace()).
+				WithField("kind", k8s.KindOf(obj)).
+				Warning("importing deprecated resource")
 			return true
 		}
 	case *ingressroutev1.IngressRoute:

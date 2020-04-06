@@ -16,6 +16,8 @@ package dag
 import (
 	"testing"
 
+	"github.com/projectcontour/contour/adobe"
+
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	projcontour "github.com/projectcontour/contour/apis/projectcontour/v1"
 	"github.com/sirupsen/logrus"
@@ -940,9 +942,14 @@ func TestKubernetesCacheInsert(t *testing.T) {
 			cache := KubernetesCache{
 				FieldLogger: testLogger(t),
 			}
+			if adobe.ShouldSkipTest(name) {
+				t.SkipNow()
+			}
 			for _, p := range tc.pre {
+				adobe.AdobefyObject(p)
 				cache.Insert(p)
 			}
+			adobe.AdobefyObject(tc.obj)
 			got := cache.Insert(tc.obj)
 			if tc.want != got {
 				t.Fatalf("Insert(%v): expected %v, got %v", tc.obj, tc.want, got)
@@ -957,6 +964,7 @@ func TestKubernetesCacheRemove(t *testing.T) {
 			FieldLogger: testLogger(t),
 		}
 		for _, o := range objs {
+			adobe.AdobefyObject(o)
 			cache.Insert(o)
 		}
 		return &cache
@@ -1180,6 +1188,7 @@ func TestKubernetesCacheRemove(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			adobe.AdobefyObject(tc.obj)
 			got := tc.cache.Remove(tc.obj)
 			if tc.want != got {
 				t.Fatalf("Remove(%v): expected %v, got %v", tc.obj, tc.want, got)

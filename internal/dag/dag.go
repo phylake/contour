@@ -21,6 +21,8 @@ import (
 	"time"
 
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"github.com/golang/protobuf/ptypes/duration"
+	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -119,6 +121,14 @@ type Route struct {
 
 	// ResponseHeadersPolicy defines how headers are managed during forwarding
 	ResponseHeadersPolicy *HeadersPolicy
+
+	Timeout *duration.Duration
+
+	HashPolicy []ingressroutev1.HashPolicy
+
+	PerFilterConfig *ingressroutev1.PerFilterConfig
+
+	IdleTimeout *duration.Duration
 }
 
 // HasPathPrefix returns whether this route has a PrefixPathCondition.
@@ -387,6 +397,8 @@ type Cluster struct {
 
 	// ResponseHeadersPolicy defines how headers are managed during forwarding
 	ResponseHeadersPolicy *HeadersPolicy
+
+	IdleTimeout *duration.Duration
 }
 
 func (c Cluster) Visit(f func(Vertex)) {

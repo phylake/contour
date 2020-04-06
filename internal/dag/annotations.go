@@ -46,48 +46,38 @@ func annotationIsKnown(key string) bool {
 	}
 }
 
+// Adobe - restrict supported annotations (warn only for now):
+// "kubernetes.io/ingress.class" on Ingress
+// "kubernetes.io/ingress.class" on IngressRoute
+// "contour.heptio.com/upstream-protocol.h2c" on Service
 var annotationsByKind = map[string]map[string]struct{}{
 	"Ingress": {
-		"ingress.kubernetes.io/force-ssl-redirect":       {},
-		"kubernetes.io/ingress.allow-http":               {},
-		"kubernetes.io/ingress.class":                    {},
-		"projectcontour.io/ingress.class":                {},
-		"projectcontour.io/num-retries":                  {},
-		"projectcontour.io/response-timeout":             {},
-		"projectcontour.io/retry-on":                     {},
-		"projectcontour.io/tls-minimum-protocol-version": {},
-		"projectcontour.io/websocket-routes":             {},
+		"kubernetes.io/ingress.class": {},
 	},
 	"Service": {
-		"projectcontour.io/max-connections":       {},
-		"projectcontour.io/max-pending-requests":  {},
-		"projectcontour.io/max-requests":          {},
-		"projectcontour.io/max-retries":           {},
-		"projectcontour.io/upstream-protocol.h2":  {},
-		"projectcontour.io/upstream-protocol.h2c": {},
-		"projectcontour.io/upstream-protocol.tls": {},
+		"contour.heptio.com/upstream-protocol.h2c": {},
 	},
 	"HTTPProxy": {
 		"kubernetes.io/ingress.class":     {},
 		"projectcontour.io/ingress.class": {},
 	},
 	"IngressRoute": {
-		"kubernetes.io/ingress.class":     {},
-		"projectcontour.io/ingress.class": {},
+		"kubernetes.io/ingress.class": {},
 	},
 }
 
 func validAnnotationForKind(kind string, key string) bool {
 	if a, ok := annotationsByKind[kind]; ok {
 		// Canonicalize the name while we still have legacy support.
-		key = strings.Replace(key, "contour.heptio.com/", "projectcontour.io/", -1)
+		// Adobe - don't support "projectcontour.io" prefix
+		// key = strings.Replace(key, "contour.heptio.com/", "projectcontour.io/", -1)
 		_, ok := a[key]
 		return ok
 	}
 
 	// We should know about every kind with a Contour annotation prefix.
-	if strings.HasPrefix(key, "projectcontour.io/") ||
-		strings.HasPrefix(key, "contour.heptio.com/") {
+	// Adobe - don't support "projectcontour.io" prefix
+	if strings.HasPrefix(key, "contour.heptio.com/") {
 		return false
 	}
 
@@ -101,6 +91,7 @@ func validAnnotationForKind(kind string, key string) bool {
 func compatAnnotation(o Object, key string) string {
 	a := o.GetObjectMeta().GetAnnotations()
 
+	// Adobe - comment this when support is effectively dropped
 	if val, ok := a["projectcontour.io/"+key]; ok {
 		return val
 	}

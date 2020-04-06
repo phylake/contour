@@ -22,8 +22,6 @@ import (
 	"syscall"
 	"time"
 
-	projectcontour "github.com/projectcontour/contour/apis/projectcontour/v1"
-
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 
 	serviceapis "sigs.k8s.io/service-apis/api/v1alpha1"
@@ -208,8 +206,9 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	informerSyncList.Add(dynamicInformerFactory.ForResource(ingressroutev1.IngressRouteGVR).Informer()).AddEventHandler(dynamicHandler)
 	informerSyncList.Add(dynamicInformerFactory.ForResource(ingressroutev1.TLSCertificateDelegationGVR).Informer()).AddEventHandler(dynamicHandler)
-	informerSyncList.Add(dynamicInformerFactory.ForResource(projectcontour.HTTPProxyGVR).Informer()).AddEventHandler(dynamicHandler)
-	informerSyncList.Add(dynamicInformerFactory.ForResource(projectcontour.TLSCertificateDelegationGVR).Informer()).AddEventHandler(dynamicHandler)
+	// Adobe - disable 1.0 CRDs
+	// informerSyncList.Add(dynamicInformerFactory.ForResource(projectcontour.HTTPProxyGVR).Informer()).AddEventHandler(dynamicHandler)
+	// informerSyncList.Add(dynamicInformerFactory.ForResource(projectcontour.TLSCertificateDelegationGVR).Informer()).AddEventHandler(dynamicHandler)
 
 	informerSyncList.Add(informerFactory.Core().V1().Services().Informer()).AddEventHandler(dynamicHandler)
 	informerSyncList.Add(informerFactory.Networking().V1beta1().Ingresses().Informer()).AddEventHandler(dynamicHandler)
@@ -277,6 +276,10 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	// step 10. register leadership election
 	eventHandler.IsLeader = setupLeadershipElection(&g, log, ctx, clients, eventHandler.UpdateNow)
+
+	// step 11.5. synchronous cache init (Adobe)
+	err = initCache(clients, eventHandler, et)
+	check(err)
 
 	// step 12. create grpc handler and register with workgroup.
 	g.Add(func(stop <-chan struct{}) error {
