@@ -364,10 +364,13 @@ func TestCluster(t *testing.T) {
 				},
 				DrainConnectionsOnHostRemoval: true,
 				HealthChecks: []*envoy_api_v2_core.HealthCheck{{
-					Timeout:            durationOrDefault(0, hcTimeout),
-					Interval:           durationOrDefault(0, hcInterval),
-					UnhealthyThreshold: countOrDefault(0, hcUnhealthyThreshold),
-					HealthyThreshold:   countOrDefault(0, hcHealthyThreshold),
+					Timeout:               durationOrDefault(0, hcTimeout),
+					Interval:              durationOrDefault(0, hcInterval),
+					InitialJitter:         durationOrDefault(0, hcInitialJitter),
+					IntervalJitter:        durationOrDefault(0, hcIntervalJitter),
+					IntervalJitterPercent: percentOrDefault(0, hcIntervalJitterPercent),
+					UnhealthyThreshold:    countOrDefault(0, hcUnhealthyThreshold),
+					HealthyThreshold:      countOrDefault(0, hcHealthyThreshold),
 					HealthChecker: &envoy_api_v2_core.HealthCheck_HttpHealthCheck_{
 						HttpHealthCheck: &envoy_api_v2_core.HealthCheck_HttpHealthCheck{
 							Host: hcHost,

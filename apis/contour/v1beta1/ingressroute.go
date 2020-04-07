@@ -120,6 +120,15 @@ type HealthCheck struct {
 	// The interval (seconds) between health checks
 	// +optional
 	IntervalSeconds int64 `json:"intervalSeconds"`
+	// The initial jitter (in milliseconds) before health checks are issued
+	// +optional
+	InitialJitterMilliseconds int64 `json:"initialJitterMilliseconds,omitempty"`
+	// The interval jitter (in milliseconds) between health checks
+	// +optional
+	IntervalJitterMilliseconds int64 `json:"intervalJitterMilliseconds,omitempty"`
+	// The interval jitter as a percent of IntervalSeconds between health checks
+	// +optional
+	IntervalJitterPercent uint32 `json:"intervalJitterPercent,omitempty"`
 	// The time to wait (seconds) for a health check response
 	// +optional
 	TimeoutSeconds int64 `json:"timeoutSeconds"`

@@ -39,6 +39,8 @@ func TestHealthCheck(t *testing.T) {
 			want: &envoy_api_v2_core.HealthCheck{
 				Timeout:            protobuf.Duration(hcTimeout),
 				Interval:           protobuf.Duration(hcInterval),
+				InitialJitter:      protobuf.Duration(hcInitialJitter),
+				IntervalJitter:     protobuf.Duration(hcIntervalJitter),
 				UnhealthyThreshold: protobuf.UInt32(3),
 				HealthyThreshold:   protobuf.UInt32(2),
 				HealthChecker: &envoy_api_v2_core.HealthCheck_HttpHealthCheck_{
@@ -58,6 +60,8 @@ func TestHealthCheck(t *testing.T) {
 			want: &envoy_api_v2_core.HealthCheck{
 				Timeout:            protobuf.Duration(hcTimeout),
 				Interval:           protobuf.Duration(hcInterval),
+				InitialJitter:      protobuf.Duration(hcInitialJitter),
+				IntervalJitter:     protobuf.Duration(hcIntervalJitter),
 				UnhealthyThreshold: protobuf.UInt32(3),
 				HealthyThreshold:   protobuf.UInt32(2),
 				HealthChecker: &envoy_api_v2_core.HealthCheck_HttpHealthCheck_{
@@ -71,12 +75,14 @@ func TestHealthCheck(t *testing.T) {
 		"explicit healthcheck": {
 			cluster: &dag.Cluster{
 				HealthCheckPolicy: &dag.HealthCheckPolicy{
-					Host:               "foo-bar-host",
-					Path:               "/healthy",
-					Timeout:            99 * time.Second,
-					Interval:           98 * time.Second,
-					UnhealthyThreshold: 97,
-					HealthyThreshold:   96,
+					Host:                       "foo-bar-host",
+					Path:                       "/healthy",
+					Timeout:                    99 * time.Second,
+					Interval:                   98 * time.Second,
+					UnhealthyThreshold:         97,
+					HealthyThreshold:           96,
+					InitialJitterMilliseconds:  95 * time.Second,
+					IntervalJitterMilliseconds: 94 * time.Second,
 				},
 			},
 			want: &envoy_api_v2_core.HealthCheck{
@@ -84,6 +90,8 @@ func TestHealthCheck(t *testing.T) {
 				Interval:           protobuf.Duration(98 * time.Second),
 				UnhealthyThreshold: protobuf.UInt32(97),
 				HealthyThreshold:   protobuf.UInt32(96),
+				InitialJitter:      protobuf.Duration(95 * time.Second),
+				IntervalJitter:     protobuf.Duration(94 * time.Second),
 				HealthChecker: &envoy_api_v2_core.HealthCheck_HttpHealthCheck_{
 					HttpHealthCheck: &envoy_api_v2_core.HealthCheck_HttpHealthCheck{
 						Path: "/healthy",

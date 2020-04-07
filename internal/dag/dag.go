@@ -429,10 +429,13 @@ func (s *Secret) PrivateKey() []byte {
 
 // Cluster health check policy.
 type HealthCheckPolicy struct {
-	Path               string
-	Host               string
-	Interval           time.Duration
-	Timeout            time.Duration
-	UnhealthyThreshold uint32
-	HealthyThreshold   uint32
+	Path                       string
+	Host                       string
+	Interval                   time.Duration
+	InitialJitterMilliseconds  time.Duration
+	IntervalJitterMilliseconds time.Duration
+	IntervalJitterPercent      uint32
+	Timeout                    time.Duration
+	UnhealthyThreshold         uint32
+	HealthyThreshold           uint32
 }

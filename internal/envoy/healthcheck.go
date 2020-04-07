@@ -26,11 +26,14 @@ import (
 
 const (
 	// Default healthcheck / lb algorithm values
-	hcTimeout            = 2 * time.Second
-	hcInterval           = 10 * time.Second
-	hcUnhealthyThreshold = 3
-	hcHealthyThreshold   = 2
-	hcHost               = "contour-envoy-healthcheck"
+	hcTimeout               = 2 * time.Second
+	hcInterval              = 60 * time.Second
+	hcInitialJitter         = 1 * time.Second // random start time between 0 and 1000 ms
+	hcIntervalJitter        = 0               // random jitter between healthchecks in milliseconds is set to 0, since we set interval jitter in percent, by default
+	hcIntervalJitterPercent = 100             // have the jitter be randomized across the entire interval
+	hcUnhealthyThreshold    = 3
+	hcHealthyThreshold      = 2
+	hcHost                  = "contour-envoy-healthcheck"
 )
 
 // healthCheck returns a *envoy_api_v2_core.HealthCheck value.
@@ -44,10 +47,13 @@ func healthCheck(cluster *dag.Cluster) *envoy_api_v2_core.HealthCheck {
 	// TODO(dfc) why do we need to specify our own default, what is the default
 	// that envoy applies if these fields are left nil?
 	return &envoy_api_v2_core.HealthCheck{
-		Timeout:            durationOrDefault(hc.Timeout, hcTimeout),
-		Interval:           durationOrDefault(hc.Interval, hcInterval),
-		UnhealthyThreshold: countOrDefault(hc.UnhealthyThreshold, hcUnhealthyThreshold),
-		HealthyThreshold:   countOrDefault(hc.HealthyThreshold, hcHealthyThreshold),
+		Timeout:               durationOrDefault(hc.Timeout, hcTimeout),
+		Interval:              durationOrDefault(hc.Interval, hcInterval),
+		InitialJitter:         durationOrDefault(hc.InitialJitterMilliseconds, hcInitialJitter),
+		IntervalJitter:        durationOrDefault(hc.IntervalJitterMilliseconds, hcIntervalJitter),
+		IntervalJitterPercent: percentOrDefault(hc.IntervalJitterPercent, hcIntervalJitterPercent),
+		UnhealthyThreshold:    countOrDefault(hc.UnhealthyThreshold, hcUnhealthyThreshold),
+		HealthyThreshold:      countOrDefault(hc.HealthyThreshold, hcHealthyThreshold),
 		HealthChecker: &envoy_api_v2_core.HealthCheck_HttpHealthCheck_{
 			HttpHealthCheck: &envoy_api_v2_core.HealthCheck_HttpHealthCheck{
 				Path: hc.Path,
@@ -77,5 +83,14 @@ func countOrDefault(count uint32, def uint32) *wrappers.UInt32Value {
 		return protobuf.UInt32(def)
 	default:
 		return protobuf.UInt32(count)
+	}
+}
+
+func percentOrDefault(percent uint32, def uint32) uint32 {
+	switch percent {
+	case 100.:
+		return def
+	default:
+		return percent
 	}
 }
