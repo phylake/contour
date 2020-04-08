@@ -152,12 +152,15 @@ func ingressrouteHealthCheckPolicy(hc *ingressroutev1.HealthCheck) *HealthCheckP
 		return nil
 	}
 	return &HealthCheckPolicy{
-		Path:               hc.Path,
-		Host:               hc.Host,
-		Interval:           time.Duration(hc.IntervalSeconds) * time.Second,
-		Timeout:            time.Duration(hc.TimeoutSeconds) * time.Second,
-		UnhealthyThreshold: hc.UnhealthyThresholdCount,
-		HealthyThreshold:   hc.HealthyThresholdCount,
+		Path:                       hc.Path,
+		Host:                       hc.Host,
+		Interval:                   time.Duration(hc.IntervalSeconds) * time.Second,
+		InitialJitterMilliseconds:  time.Duration(hc.InitialJitterMilliseconds) * time.Millisecond,
+		IntervalJitterMilliseconds: time.Duration(hc.IntervalJitterMilliseconds) * time.Millisecond,
+		IntervalJitterPercent:      hc.IntervalJitterPercent,
+		Timeout:                    time.Duration(hc.TimeoutSeconds) * time.Second,
+		UnhealthyThreshold:         hc.UnhealthyThresholdCount,
+		HealthyThreshold:           hc.HealthyThresholdCount,
 	}
 }
 

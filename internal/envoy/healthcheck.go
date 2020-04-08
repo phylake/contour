@@ -88,6 +88,8 @@ func countOrDefault(count uint32, def uint32) *wrappers.UInt32Value {
 
 func percentOrDefault(percent uint32, def uint32) uint32 {
 	switch percent {
+	case 0:
+		return def
 	case 100.:
 		return def
 	default:
