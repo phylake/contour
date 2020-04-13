@@ -14,6 +14,8 @@
 package envoy
 
 import (
+	"os"
+	"strconv"
 	"time"
 
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -43,7 +45,7 @@ func httpHealthCheck(cluster *dag.Cluster) *envoy_api_v2_core.HealthCheck {
 
 	// TODO(dfc) why do we need to specify our own default, what is the default
 	// that envoy applies if these fields are left nil?
-	return &envoy_api_v2_core.HealthCheck{
+	healthCheck := &envoy_api_v2_core.HealthCheck{
 		Timeout:            durationOrDefault(hc.Timeout, hcTimeout),
 		Interval:           durationOrDefault(hc.Interval, hcInterval),
 		UnhealthyThreshold: countOrDefault(hc.UnhealthyThreshold, hcUnhealthyThreshold),
@@ -62,6 +64,13 @@ func httpHealthCheck(cluster *dag.Cluster) *envoy_api_v2_core.HealthCheck {
 			},
 		},
 	}
+
+	if enabled, err := strconv.ParseBool(os.Getenv("HC_FAILURE_LOGGING_ENABLED")); enabled && err == nil {
+		healthCheck.EventLogPath = "/dev/stderr"
+		healthCheck.AlwaysLogHealthCheckFailures = true
+	}
+
+	return healthCheck
 }
 
 // tcpHealthCheck returns a *envoy_api_v2_core.HealthCheck value for TCPProxies
