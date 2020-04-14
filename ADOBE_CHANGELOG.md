@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## (unreleased)
+
+- enable panic mode
+- log health check failures, when enabled
+
 ## v1.3.0-2.6.1-adobe
 
 - built from contour v1.3.0

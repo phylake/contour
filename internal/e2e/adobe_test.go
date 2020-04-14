@@ -1172,6 +1172,7 @@ func TestAdobeListenerDisableTLS1_1(t *testing.T) {
 // add CircuitBreakers
 // add DrainConnectionsOnHostRemoval
 // Cluster_LbPolicy changes: remove Cookie/replace with RingHash, add MagLev
+// CommonLbConfig: enable HealthyPanicThreshold
 
 // test both at the same time since they're both added
 func TestAdobeClusterCircuitBreakersDrainConnections(t *testing.T) {
@@ -1310,6 +1311,73 @@ func TestAdobeClusterLbPolicy(t *testing.T) {
 	cMagLev.CommonHttpProtocolOptions = adobe.CommonHttpProtocolOptions
 
 	protos := []proto.Message{cCookie, cMagLev, cRingHash} //ordered
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     clusterType,
+		Nonce:       "1",
+	}, streamCDS(t, cc))
+}
+
+// HealthyPanicThreshold=100
+func TestAdobeClusterHealthyPanicThreshold(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{Fqdn: "panic.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+			}},
+		},
+	})
+
+	c := &v2.Cluster{
+		Name:                 "default/ws/80/da39a3ee5e",
+		AltStatName:          "default_ws_80",
+		ClusterDiscoveryType: envoy.ClusterDiscoveryType(v2.Cluster_EDS),
+		EdsClusterConfig: &v2.Cluster_EdsClusterConfig{
+			EdsConfig:   envoy.ConfigSource("contour"),
+			ServiceName: "default/ws",
+		},
+		ConnectTimeout:                protobuf.Duration(250 * time.Millisecond),
+		CircuitBreakers:               adobe.CircuitBreakers,
+		DrainConnectionsOnHostRemoval: true,
+		CommonHttpProtocolOptions:     adobe.CommonHttpProtocolOptions,
+
+		// HealthyPanicThreshold
+		CommonLbConfig: &v2.Cluster_CommonLbConfig{
+			HealthyPanicThreshold: &envoy_type.Percent{
+				Value: 100,
+			},
+		},
+	}
+
+	protos := []proto.Message{c}
 
 	assert.Equal(t, &v2.DiscoveryResponse{
 		VersionInfo: adobe.Hash(protos),

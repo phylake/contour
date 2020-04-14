@@ -15,6 +15,7 @@ import (
 // ignore properties added/removed by our customization
 var ignoreProperties = []cmp.Option{
 	cmpopts.IgnoreFields(v2.Cluster{}, "CommonHttpProtocolOptions", "CircuitBreakers", "DrainConnectionsOnHostRemoval"),
+	cmpopts.IgnoreFields(v2.Cluster_CommonLbConfig{}, "HealthyPanicThreshold"),
 	cmpopts.IgnoreFields(v2.RouteConfiguration{}, "RequestHeadersToAdd"),
 	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck_HttpHealthCheck{}, "ExpectedStatuses"),
 	cmpopts.IgnoreFields(envoy_api_v2_route.RouteAction{}, "RetryPolicy", "Timeout", "IdleTimeout", "HashPolicy"),
