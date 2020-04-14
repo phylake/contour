@@ -16,7 +16,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
-## (unreleased)
+## v1.3.0-2.7.0-adobe
 
 - enable panic mode
 - log health check failures, when enabled
