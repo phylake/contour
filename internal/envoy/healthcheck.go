@@ -28,11 +28,13 @@ import (
 
 const (
 	// Default healthcheck / lb algorithm values
-	hcTimeout            = 2 * time.Second
-	hcInterval           = 10 * time.Second
-	hcUnhealthyThreshold = 3
-	hcHealthyThreshold   = 2
-	hcHost               = "contour-envoy-healthcheck"
+	hcTimeout               = 2 * time.Second
+	hcInterval              = 10 * time.Second
+	hcInitialJitter         = 1 * time.Second
+	hcIntervalJitterPercent = 100
+	hcUnhealthyThreshold    = 3
+	hcHealthyThreshold      = 2
+	hcHost                  = "contour-envoy-healthcheck"
 )
 
 // httpHealthCheck returns a *envoy_api_v2_core.HealthCheck value for HTTP Routes
@@ -46,10 +48,12 @@ func httpHealthCheck(cluster *dag.Cluster) *envoy_api_v2_core.HealthCheck {
 	// TODO(dfc) why do we need to specify our own default, what is the default
 	// that envoy applies if these fields are left nil?
 	healthCheck := &envoy_api_v2_core.HealthCheck{
-		Timeout:            durationOrDefault(hc.Timeout, hcTimeout),
-		Interval:           durationOrDefault(hc.Interval, hcInterval),
-		UnhealthyThreshold: countOrDefault(hc.UnhealthyThreshold, hcUnhealthyThreshold),
-		HealthyThreshold:   countOrDefault(hc.HealthyThreshold, hcHealthyThreshold),
+		Timeout:               durationOrDefault(hc.Timeout, hcTimeout),
+		Interval:              durationOrDefault(hc.Interval, hcInterval),
+		InitialJitter:         durationOrDefault(hcInitialJitter, hcInitialJitter),
+		IntervalJitterPercent: hcIntervalJitterPercent,
+		UnhealthyThreshold:    countOrDefault(hc.UnhealthyThreshold, hcUnhealthyThreshold),
+		HealthyThreshold:      countOrDefault(hc.HealthyThreshold, hcHealthyThreshold),
 		HealthChecker: &envoy_api_v2_core.HealthCheck_HttpHealthCheck_{
 			HttpHealthCheck: &envoy_api_v2_core.HealthCheck_HttpHealthCheck{
 				Path: hc.Path,

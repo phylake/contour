@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## unreleased
+
+- configure InitialJitter
+- configure IntervalJitterPercent
+
 ## v1.3.0-2.7.0-adobe
 
 - enable panic mode

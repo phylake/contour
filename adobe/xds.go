@@ -49,6 +49,8 @@ var (
 			End:   400,
 		},
 	}
+	InitialJitter                = protobuf.Duration(1 * time.Second)
+	IntervalJitterPercent uint32 = 100
 )
 
 // EDS customization
@@ -84,6 +86,8 @@ func AdobefyXDS(t *testing.T, resp *v2.DiscoveryResponse) {
 			cluster.CommonHttpProtocolOptions = CommonHttpProtocolOptions
 			if cluster.HealthChecks != nil {
 				for _, h := range cluster.HealthChecks {
+					h.InitialJitter = InitialJitter
+					h.IntervalJitterPercent = IntervalJitterPercent
 					h.GetHttpHealthCheck().ExpectedStatuses = ExpectedStatuses
 				}
 			}

@@ -1389,6 +1389,8 @@ func TestAdobeClusterHealthyPanicThreshold(t *testing.T) {
 
 // == internal/envoy/healthcheck
 // add ExpectedStatuses
+// add InitialJitter = 1s
+// add IntervalJitterPercent = 100
 
 func TestAdobeClusterHealthcheck(t *testing.T) {
 	rh, cc, done := setup(t)
@@ -1433,10 +1435,12 @@ func TestAdobeClusterHealthcheck(t *testing.T) {
 	c.DrainConnectionsOnHostRemoval = true
 	c.HealthChecks = []*envoy_api_v2_core.HealthCheck{
 		{
-			Timeout:            protobuf.Duration(2 * time.Second),
-			Interval:           protobuf.Duration(10 * time.Second),
-			UnhealthyThreshold: protobuf.UInt32(3),
-			HealthyThreshold:   protobuf.UInt32(2),
+			Timeout:               protobuf.Duration(2 * time.Second),
+			Interval:              protobuf.Duration(10 * time.Second),
+			InitialJitter:         protobuf.Duration(1 * time.Second),
+			IntervalJitterPercent: 100,
+			UnhealthyThreshold:    protobuf.UInt32(3),
+			HealthyThreshold:      protobuf.UInt32(2),
 			HealthChecker: &envoy_api_v2_core.HealthCheck_HttpHealthCheck_{
 				HttpHealthCheck: &envoy_api_v2_core.HealthCheck_HttpHealthCheck{
 					Path:             "/health",
