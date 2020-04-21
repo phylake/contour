@@ -20,6 +20,8 @@ var ignoreProperties = []cmp.Option{
 	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck_HttpHealthCheck{}, "ExpectedStatuses"),
 	cmpopts.IgnoreFields(envoy_api_v2_route.RouteAction{}, "RetryPolicy", "Timeout", "IdleTimeout", "HashPolicy"),
 	cmpopts.IgnoreFields(envoy_api_v2_route.VirtualHost{}, "RetryPolicy"),
+	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck{}, "InitialJitter"),
+	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck{}, "IntervalJitterPercent"),
 }
 
 // list of tests to ignore (assuming names are unique across suites)
