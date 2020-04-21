@@ -8,21 +8,18 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 )
 
-// Retrieve the secret name attached to the given DownstreamTlsContext
-// Since we created it, we know there's only one!
-func RetrieveSecretName(transSocket *envoy_api_v2_core.TransportSocket) string {
-	return getDownstreamTlsContext(transSocket.GetTypedConfig()).CommonTlsContext.TlsCertificateSdsSecretConfigs[0].Name
+// DownstreamTLSContextAdobe - same as upstream but handles tlsMaxProtoVersion
+func DownstreamTLSContextAdobe(secretName string, tlsMinProtoVersion envoy_api_v2_auth.TlsParameters_TlsProtocol, tlsMaxProtoVersion envoy_api_v2_auth.TlsParameters_TlsProtocol, alpnProtos ...string) *envoy_api_v2_auth.DownstreamTlsContext {
+	tls := DownstreamTLSContext(secretName, tlsMinProtoVersion, alpnProtos...)
+	tls.CommonTlsContext.TlsParams.TlsMaximumProtocolVersion = tlsMaxProtoVersion
+	return tls
 }
 
-// Retrieve the min TLS protocol version configured on the given DownstreamTlsContext
-func RetrieveMinTLSVersion(transSocket *envoy_api_v2_core.TransportSocket) envoy_api_v2_auth.TlsParameters_TlsProtocol {
-	return getDownstreamTlsContext(transSocket.GetTypedConfig()).CommonTlsContext.TlsParams.TlsMinimumProtocolVersion
-}
-
-// Shortcut to get both previous values in 1 swoop
-func RetrieveSecretNameAndMinTLSVersion(transSocket *envoy_api_v2_core.TransportSocket) (string, envoy_api_v2_auth.TlsParameters_TlsProtocol) {
+// Retrieve the secret name and TLS protocol version attached to the given DownstreamTlsContext
+// Since we created it, we know there's only secret!
+func RetrieveSecretNameAndTLSVersions(transSocket *envoy_api_v2_core.TransportSocket) (string, envoy_api_v2_auth.TlsParameters_TlsProtocol, envoy_api_v2_auth.TlsParameters_TlsProtocol) {
 	ctc := getDownstreamTlsContext(transSocket.GetTypedConfig()).CommonTlsContext
-	return ctc.TlsCertificateSdsSecretConfigs[0].Name, ctc.TlsParams.TlsMinimumProtocolVersion
+	return ctc.TlsCertificateSdsSecretConfigs[0].Name, ctc.TlsParams.TlsMinimumProtocolVersion, ctc.TlsParams.TlsMaximumProtocolVersion
 }
 
 func getDownstreamTlsContext(a *any.Any) *envoy_api_v2_auth.DownstreamTlsContext {
