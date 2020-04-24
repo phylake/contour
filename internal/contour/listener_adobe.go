@@ -5,6 +5,7 @@ import (
 	"os"
 
 	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -113,4 +114,12 @@ func CustomListenerFilters() []*envoy_api_v2_listener.ListenerFilter {
 		return []*envoy_api_v2_listener.ListenerFilter{}
 	}
 	return []*envoy_api_v2_listener.ListenerFilter{ipAllowDenyListenerFilter}
+}
+
+// maxProtoVersion returns the max supported version if the given version is TLS_AUTO
+func maxProtoVersion(version envoy_api_v2_auth.TlsParameters_TlsProtocol) envoy_api_v2_auth.TlsParameters_TlsProtocol {
+	if version == envoy_api_v2_auth.TlsParameters_TLS_AUTO {
+		return envoy_api_v2_auth.TlsParameters_TLSv1_3
+	}
+	return version
 }

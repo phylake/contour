@@ -45,6 +45,9 @@ import (
 //
 // == Service
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
+//
+// == TLS
+// MaximumProtocolVersion string `json:"maximumProtocolVersion,omitempty"`
 
 func TestAdobeRouteHashPolicy(t *testing.T) {
 	rh, cc, done := setup(t)
@@ -621,6 +624,94 @@ func TestAdobeRouteServiceTimeout(t *testing.T) {
 		TypeUrl:     clusterType,
 		Nonce:       "1",
 	}, streamCDS(t, cc))
+}
+
+func TestAdobeTLSMaximumProtocolVersion(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret",
+			Namespace: "default",
+		},
+		Type: "kubernetes.io/tls",
+		Data: secretdata(CERTIFICATE, RSA_PRIVATE_KEY),
+	}
+	rh.OnAdd(secret)
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "tls-max-version.hello.world",
+				TLS: &projcontour.TLS{
+					SecretName:             "secret",
+					MaximumProtocolVersion: "1.2",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+			}},
+		},
+	})
+
+	tlsContext := envoy.DownstreamTLSContext(envoy.Secretname(&dag.Secret{Object: secret}), envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1")
+	tlsContext.CommonTlsContext.TlsParams.TlsMaximumProtocolVersion = envoy_api_v2_auth.TlsParameters_TLSv1_2
+
+	protos := []proto.Message{
+		&v2.Listener{
+			Name:         "ingress_http",
+			Address:      envoy.SocketAddress("0.0.0.0", 8080),
+			FilterChains: envoy.FilterChains(envoy.HTTPConnectionManager("ingress_http", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+		},
+		&v2.Listener{
+			Name:    "ingress_https",
+			Address: envoy.SocketAddress("0.0.0.0", 8443),
+			ListenerFilters: envoy.ListenerFilters(
+				envoy.TLSInspector(),
+			),
+			FilterChains: []*envoy_api_v2_listener.FilterChain{
+				{
+					Filters: envoy.Filters(envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
+						ServerNames: []string{
+							"tls-max-version.hello.world",
+						},
+					},
+					TransportSocket: envoy.DownstreamTLSTransportSocket(tlsContext),
+				},
+			},
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     listenerType,
+		Nonce:       "1",
+	}, streamLDS(t, cc))
 }
 
 // ==== Hard-coded customization ====

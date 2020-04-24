@@ -115,6 +115,9 @@ type TLS struct {
 	// Minimum TLS version this vhost should negotiate
 	// +optional
 	MinimumProtocolVersion string `json:"minimumProtocolVersion,omitempty"`
+	// Maximum TLS version this vhost should negotiate
+	// +optional
+	MaximumProtocolVersion string `json:"maximumProtocolVersion,omitempty"`
 	// If Passthrough is set to true, the SecretName will be ignored
 	// and the encrypted handshake will be passed through to the
 	// backing cluster.

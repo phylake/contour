@@ -5,9 +5,12 @@ import (
 	"strconv"
 	"strings"
 
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	http "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_type "github.com/envoyproxy/go-control-plane/envoy/type"
+	"github.com/projectcontour/contour/internal/dag"
 )
 
 func validPercent(f float64) bool {
@@ -114,4 +117,16 @@ func socketOptions() (opts []*envoy_api_v2_core.SocketOption) {
 	}
 
 	return
+}
+
+// FilterChainTLSAdobe - same as upstream FilterChainTLS, but takes tlsMaxProtoVersion
+func FilterChainTLSAdobe(domain string, secret *dag.Secret, filters []*envoy_api_v2_listener.Filter, tlsMinProtoVersion, tlsMaxProtoVersion envoy_api_v2_auth.TlsParameters_TlsProtocol, alpnProtos ...string) *envoy_api_v2_listener.FilterChain {
+	fc := FilterChainTLS(domain, secret, filters, tlsMinProtoVersion, alpnProtos...)
+	// attach certificate data to this listener if provided.
+	if secret != nil {
+		fc.TransportSocket = DownstreamTLSTransportSocket(
+			DownstreamTLSContextAdobe(Secretname(secret), tlsMinProtoVersion, tlsMaxProtoVersion, alpnProtos...),
+		)
+	}
+	return fc
 }

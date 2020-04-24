@@ -421,6 +421,7 @@ func (b *Builder) computeIngressRoute(ir *ingressroutev1.IngressRoute) {
 			svhost := b.lookupSecureVirtualHost(ir.Spec.VirtualHost.Fqdn)
 			svhost.Secret = sec
 			svhost.MinProtoVersion = MinProtoVersion(ir.Spec.VirtualHost.TLS.MinimumProtocolVersion)
+			svhost.MaxProtoVersion = MaxProtoVersion(ir.Spec.VirtualHost.TLS.MaximumProtocolVersion)
 			enforceTLS = true
 		}
 		// passthrough is true if tls.secretName is not present, and

@@ -2,6 +2,7 @@ package adobe
 
 import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/google/go-cmp/cmp"
@@ -17,6 +18,7 @@ var ignoreProperties = []cmp.Option{
 	cmpopts.IgnoreFields(v2.Cluster{}, "CommonHttpProtocolOptions", "CircuitBreakers", "DrainConnectionsOnHostRemoval"),
 	cmpopts.IgnoreFields(v2.Cluster_CommonLbConfig{}, "HealthyPanicThreshold"),
 	cmpopts.IgnoreFields(v2.RouteConfiguration{}, "RequestHeadersToAdd"),
+	cmpopts.IgnoreFields(envoy_api_v2_auth.TlsParameters{}, "TlsMaximumProtocolVersion"),
 	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck_HttpHealthCheck{}, "ExpectedStatuses"),
 	cmpopts.IgnoreFields(envoy_api_v2_route.RouteAction{}, "RetryPolicy", "Timeout", "IdleTimeout", "HashPolicy"),
 	cmpopts.IgnoreFields(envoy_api_v2_route.VirtualHost{}, "RetryPolicy"),

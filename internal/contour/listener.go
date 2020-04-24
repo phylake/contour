@@ -366,8 +366,8 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			alpnProtos = nil // do not offer ALPN
 		}
 
-		// Group filter chain by cert and min TLS version (client-configurable)
-		// if a filter chain with that cert and that min tls already exists, just
+		// Group filter chain by cert and TLS versions (client-configurable)
+		// if a filter chain with that cert and those min/max tls already exists, just
 		// add the vhost name to the existing list
 		// EXCEPTION: don't group if TCPProxy filter exists (client-provided)
 		fcExists := false
@@ -378,7 +378,8 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 					// No TransportSocket, no grouping
 					break
 				}
-				if s, m := envoy.RetrieveSecretNameAndMinTLSVersion(fc.TransportSocket); s == secretName && m == max(v.ListenerVisitorConfig.minProtoVersion(), vh.MinProtoVersion) {
+				secret, minTls, maxTls := envoy.RetrieveSecretNameAndTLSVersions(fc.TransportSocket)
+				if secret == secretName && minTls == max(v.ListenerVisitorConfig.minProtoVersion(), vh.MinProtoVersion) && maxTls == maxProtoVersion(vh.MaxProtoVersion) {
 					fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)
 					sort.Strings(fc.FilterChainMatch.ServerNames)
 					fcExists = true
@@ -388,11 +389,12 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 		}
 
 		if !fcExists {
-			fc := envoy.FilterChainTLS(
+			fc := envoy.FilterChainTLSAdobe(
 				vh.VirtualHost.Name,
 				vh.Secret,
 				filters,
 				max(v.ListenerVisitorConfig.minProtoVersion(), vh.MinProtoVersion), // choose the higher of the configured or requested tls version
+				maxProtoVersion(vh.MaxProtoVersion),
 				alpnProtos...,
 			)
 
