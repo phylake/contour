@@ -16,7 +16,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
-## unreleased
+## v1.3.0-2.8.0-adobe
 
 - configure InitialJitter & IntervalJitterPercent
 - add support for MaximumProtocolVersion on IngressRoute
