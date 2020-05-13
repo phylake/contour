@@ -404,10 +404,11 @@ func (b *Builder) computeIngressRoute(ir *ingressroutev1.IngressRoute) {
 	}
 	sw.WithValue("vhost", host)
 
-	if strings.Contains(host, "*") {
-		sw.SetInvalid("Spec.VirtualHost.Fqdn %q cannot use wildcards", host)
-		return
-	}
+	// Adobe - allow wildcard fqdn
+	// if strings.Contains(host, "*") {
+	// 	sw.SetInvalid("Spec.VirtualHost.Fqdn %q cannot use wildcards", host)
+	// 	return
+	// }
 
 	var enforceTLS, passthrough bool
 	if tls := ir.Spec.VirtualHost.TLS; tls != nil {
