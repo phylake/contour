@@ -1016,6 +1016,18 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				}
 			}
 
+			if route.Tracing != nil {
+				if route.Tracing.ClientSampling > 100 {
+					sw.SetInvalid("route %q: tracing clientSampling must be in the range [0,100]", route.Match)
+					return
+				} else if route.Tracing.RandomSampling > 100 {
+					sw.SetInvalid("route %q: tracing randomSampling must be in the range [0,100]", route.Match)
+					return
+				} else {
+					r.Tracing = route.Tracing
+				}
+			}
+
 			for _, service := range route.Services {
 				if service.Port < 1 || service.Port > 65535 {
 					sw.SetInvalid("route %q: service %q: port must be in the range 1-65535", route.Match, service.Name)

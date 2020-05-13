@@ -14,12 +14,15 @@
 package contour
 
 import (
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoy_type "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/golang/protobuf/proto"
 	"github.com/projectcontour/contour/internal/dag"
@@ -120,17 +123,18 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 						return
 					}
 
+					var rt *envoy_api_v2_route.Route
 					if route.HTTPSUpgrade {
 						// TODO(dfc) if we ensure the builder never returns a dag.Route connected
 						// to a SecureVirtualHost that requires upgrade, this logic can move to
 						// envoy.RouteRoute.
-						routes = append(routes, &envoy_api_v2_route.Route{
+						rt = &envoy_api_v2_route.Route{
 							Match:                envoy.RouteMatch(route),
 							Action:               envoy.UpgradeHTTPS(),
 							TypedPerFilterConfig: envoy.TypedPerFilterConfig(route),
-						})
+						}
 					} else {
-						rt := &envoy_api_v2_route.Route{
+						rt = &envoy_api_v2_route.Route{
 							Match:                envoy.RouteMatch(route),
 							Action:               envoy.RouteRoute(route),
 							TypedPerFilterConfig: envoy.TypedPerFilterConfig(route),
@@ -143,8 +147,22 @@ func (v *routeVisitor) visit(vertex dag.Vertex) {
 							rt.ResponseHeadersToAdd = envoy.HeaderValueList(route.ResponseHeadersPolicy.Set, false)
 							rt.ResponseHeadersToRemove = route.ResponseHeadersPolicy.Remove
 						}
-						routes = append(routes, rt)
 					}
+
+					if enabled, err := strconv.ParseBool(os.Getenv("TRACING_ENABLED")); enabled && err == nil && route.Tracing != nil {
+						rt.Tracing = &envoy_api_v2_route.Tracing{
+							ClientSampling: &envoy_type.FractionalPercent{
+								Numerator:   uint32(route.Tracing.ClientSampling),
+								Denominator: envoy_type.FractionalPercent_HUNDRED,
+							},
+							RandomSampling: &envoy_type.FractionalPercent{
+								Numerator:   uint32(route.Tracing.RandomSampling),
+								Denominator: envoy_type.FractionalPercent_HUNDRED,
+							},
+						}
+					}
+
+					routes = append(routes, rt)
 				})
 
 				if len(routes) < 1 {

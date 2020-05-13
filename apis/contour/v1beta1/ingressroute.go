@@ -65,6 +65,8 @@ type Route struct {
 	Timeout *Duration `json:"timeout,omitempty"`
 
 	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
+
+	Tracing *Tracing `json:"tracing,omitempty"`
 }
 
 // TimeoutPolicy define the attributes associated with timeout
