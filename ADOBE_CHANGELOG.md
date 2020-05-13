@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.3.0-2.9.0-adobe
+
+- expose tracing config in IngressRoute
+
 ## v1.3.0-2.8.0-adobe
 
 - configure InitialJitter & IntervalJitterPercent

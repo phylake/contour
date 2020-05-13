@@ -11,6 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+type Tracing struct {
+	ClientSampling uint8 `json:"clientSampling,omitempty"`
+	RandomSampling uint8 `json:"randomSampling,omitempty"`
+}
+
 type Duration struct {
 	duration.Duration
 }

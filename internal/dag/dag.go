@@ -129,6 +129,8 @@ type Route struct {
 	PerFilterConfig *ingressroutev1.PerFilterConfig
 
 	IdleTimeout *duration.Duration
+
+	Tracing *ingressroutev1.Tracing
 }
 
 // HasPathPrefix returns whether this route has a PrefixPathCondition.
