@@ -405,8 +405,12 @@ func (b *Builder) computeIngressRoute(ir *ingressroutev1.IngressRoute) {
 	sw.WithValue("vhost", host)
 
 	if strings.Contains(host, "*") {
-		sw.SetInvalid("Spec.VirtualHost.Fqdn %q cannot use wildcards", host)
-		return
+		// Adobe - we allow, but with a bit of validation:
+		// no top domain, no "*"
+		if !strings.HasPrefix(host, "*") || strings.Count(host, ".") < 3 {
+			sw.SetInvalid("Spec.VirtualHost.Fqdn %q is invalid", host)
+			return
+		}
 	}
 
 	var enforceTLS, passthrough bool
