@@ -719,6 +719,7 @@ func TestAdobeTLSMaximumProtocolVersion(t *testing.T) {
 // == internal/contour/listener.go
 // remove stats listener
 // add custom listeners (with CIDR_LIST_PATH)
+// default TLS server (with DEFAULT_CERTIFICATE)
 // filter chain grouping
 
 func TestAdobeListenerRemoveStats(t *testing.T) {
@@ -782,6 +783,87 @@ func TestAdobeListenerCustomListeners(t *testing.T) {
 	// // set up the env var
 	// os.Setenv("CIDR_LIST_PATH", "ip_allow_deny.json")
 	// defer os.Unsetenv("CIDR_LIST_PATH")
+}
+
+func TestAdobeListenerDefaultTLSServer(t *testing.T) {
+	rh, cc, done := setup(t, func(reh *contour.EventHandler) {
+		reh.CacheHandler.DefaultCertificate = "ns/secret"
+	})
+	defer done()
+
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret",
+			Namespace: "ns",
+		},
+		Type: "kubernetes.io/tls",
+		Data: secretdata(CERTIFICATE, RSA_PRIVATE_KEY),
+	}
+	rh.OnAdd(secret)
+
+	// we need at least 1 cluster to trigger a listener build
+	// in the real world, envoy won't request LDS if CDS is empty
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "default.hello.world",
+				TLS: &projcontour.TLS{
+					SecretName: "secret",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+			}},
+		},
+	})
+
+	protos := []proto.Message{
+		&v2.Listener{
+			Name:         "ingress_http",
+			Address:      envoy.SocketAddress("0.0.0.0", 8080),
+			FilterChains: envoy.FilterChains(envoy.HTTPConnectionManager("ingress_http", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+		},
+		&v2.Listener{
+			Name:    "ingress_https",
+			Address: envoy.SocketAddress("0.0.0.0", 8443),
+			ListenerFilters: envoy.ListenerFilters(
+				envoy.TLSInspector(),
+			),
+			FilterChains: []*envoy_api_v2_listener.FilterChain{
+				envoy.FilterChainTLS("", &dag.Secret{Object: secret}, envoy.Filters(envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)), envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+				envoy.FilterChainTLS("default.hello.world", &dag.Secret{Object: secret}, envoy.Filters(envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)), envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+			},
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     listenerType,
+		Nonce:       "1",
+	}, streamLDS(t, cc))
 }
 
 func TestAdobeListenerFilterChainGrouping(t *testing.T) {

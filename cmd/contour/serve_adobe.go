@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	"github.com/projectcontour/contour/internal/contour"
 	"github.com/projectcontour/contour/internal/k8s"
@@ -8,7 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// func initCache(client *kubernetes.Clientset, contourClient *clientset.Clientset, eh *contour.EventHandler, et *contour.EndpointsTranslator) error {
 func initCache(clients *k8s.Clients, eh *contour.EventHandler, et *contour.EndpointsTranslator) error {
 	eh.Info("starting cache initialization")
 
@@ -110,4 +111,8 @@ func initCache(clients *k8s.Clients, eh *contour.EventHandler, et *contour.Endpo
 
 	eh.Info("finished cache initialization")
 	return nil
+}
+
+func defaultCertificate() string {
+	return os.Getenv("DEFAULT_CERTIFICATE")
 }

@@ -75,6 +75,10 @@ type ListenerVisitorConfig struct {
 	// MinimumProtocolVersion defines the min tls protocol version to be used
 	MinimumProtocolVersion envoy_api_v2_auth.TlsParameters_TlsProtocol
 
+	// DefaultCertificate is the cert to use for the catch-all server
+	// if defined, it should be an existing secret of type kubernetes.io/tls
+	DefaultCertificate string
+
 	// AccessLogType defines if Envoy logs should be output as Envoy's default or JSON.
 	// Valid values: 'envoy', 'json'
 	// If not set, defaults to 'envoy'
@@ -304,6 +308,29 @@ func visitListeners(root dag.Vertex, lvc *ListenerVisitorConfig) map[string]*v2.
 			envoy.HTTPConnectionManager(ENVOY_HTTP_LISTENER, lvc.newInsecureAccessLog(), lvc.requestTimeout()),
 		)
 
+	}
+
+	// Configure a default/catch all filterchain if a DefaultCertificate exists
+	// setting "server_names" to a blank string will catch clients that don't send SNI
+	// https://www.envoyproxy.io/docs/envoy/v1.13.1/api-v2/api/v2/listener/listener_components.proto#listener-filterchainmatch
+	if lv.ListenerVisitorConfig.DefaultCertificate != "" {
+		secrets := visitSecretsAsDag(root)
+		if secret, ok := secrets[lv.ListenerVisitorConfig.DefaultCertificate]; ok {
+			// filters & alpnProtos are exactly as in visit() below
+			filters := envoy.Filters(
+				envoy.HTTPConnectionManager(ENVOY_HTTPS_LISTENER, lv.ListenerVisitorConfig.newSecureAccessLog(), lv.ListenerVisitorConfig.requestTimeout()),
+			)
+			alpnProtos := []string{"h2", "http/1.1"}
+
+			fcNoSNI := envoy.FilterChainTLS(
+				"", // no "server_names"
+				secret,
+				filters,
+				lv.ListenerVisitorConfig.minProtoVersion(),
+				alpnProtos...,
+			)
+			lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains = append(lv.listeners[ENVOY_HTTPS_LISTENER].FilterChains, fcNoSNI)
+		}
 	}
 
 	// remove the https listener if there are no vhosts bound to it.
