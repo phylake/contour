@@ -64,6 +64,7 @@ var (
 // no default timeout, comes from ingressroute
 // no default HashPolicy, comes from ingressroute
 // no RetryPolicy
+// no RequestMirrorPolicies
 // ClassAnnotation - test skipped
 // root to root delegation - test skipped
 
@@ -114,6 +115,7 @@ func AdobefyXDS(t *testing.T, resp *v2.DiscoveryResponse) {
 						rr.Route.IdleTimeout = nil
 						rr.Route.RetryPolicy = nil
 						rr.Route.HashPolicy = nil
+						rr.Route.RequestMirrorPolicies = nil
 					}
 				}
 			}

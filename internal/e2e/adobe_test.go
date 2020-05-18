@@ -1616,10 +1616,18 @@ func TestAdobeClusterHealthyPanicThreshold(t *testing.T) {
 // add ExpectedStatuses
 // add InitialJitter = 1s
 // add IntervalJitterPercent = 100
+// optional logging
 
 func TestAdobeClusterHealthcheck(t *testing.T) {
 	rh, cc, done := setup(t)
 	defer done()
+
+	// set up the env var
+	os.Setenv("HC_FAILURE_LOGGING_ENABLED", "true")
+
+	defer func() {
+		os.Unsetenv("HC_FAILURE_LOGGING_ENABLED")
+	}()
 
 	rh.OnAdd(&v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1673,6 +1681,8 @@ func TestAdobeClusterHealthcheck(t *testing.T) {
 					ExpectedStatuses: adobe.ExpectedStatuses,
 				},
 			},
+			EventLogPath:                 "/dev/stderr",
+			AlwaysLogHealthCheckFailures: true,
 		},
 	}
 	c.CommonHttpProtocolOptions = adobe.CommonHttpProtocolOptions
@@ -1941,6 +1951,7 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 
 // == internal/envoy/route.go
 // remove RouteAction.RetryPolicy
+// remove RouteAction.RequestMirrorPolicies (no test: not part of IngressRoute)
 // remove RouteHeader "x-request-start"
 // add VirtualHost.RetryPolicy
 
