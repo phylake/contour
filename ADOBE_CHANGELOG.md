@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## unreleased
+
+- optional default TLS server
+
 ## v1.3.0-2.9.0-adobe
 
 - expose tracing config in IngressRoute
