@@ -20,7 +20,7 @@ var ignoreProperties = []cmp.Option{
 	cmpopts.IgnoreFields(v2.RouteConfiguration{}, "RequestHeadersToAdd"),
 	cmpopts.IgnoreFields(envoy_api_v2_auth.TlsParameters{}, "TlsMaximumProtocolVersion"),
 	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck_HttpHealthCheck{}, "ExpectedStatuses"),
-	cmpopts.IgnoreFields(envoy_api_v2_route.RouteAction{}, "RetryPolicy", "Timeout", "IdleTimeout", "HashPolicy"),
+	cmpopts.IgnoreFields(envoy_api_v2_route.RouteAction{}, "RetryPolicy", "Timeout", "IdleTimeout", "HashPolicy", "RequestMirrorPolicies"),
 	cmpopts.IgnoreFields(envoy_api_v2_route.VirtualHost{}, "RetryPolicy"),
 	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck{}, "InitialJitter"),
 	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck{}, "IntervalJitterPercent"),
@@ -32,6 +32,7 @@ var ignoreTests = map[string]struct{}{
 	"root ingress delegating to another root w/ different hostname": {}, // root to root delegation
 	"self-edge produces a cycle":                                    {}, // root to root delegation
 	"multiple tls ingress with secrets should be sorted":            {}, // we group the filter chains together
+	"invalid FQDN contains wildcard":                                {}, // allow wildcard fqdn
 }
 
 func IgnoreFields() []cmp.Option {

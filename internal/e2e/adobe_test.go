@@ -42,6 +42,7 @@ import (
 // PerFilterConfig *PerFilterConfig `json:"perFilterConfig,omitempty"`
 // Timeout *Duration `json:"timeout,omitempty"`
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
+// Tracing *Tracing `json:"tracing,omitempty"`
 //
 // == Service
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
@@ -513,6 +514,64 @@ func TestAdobeRouteTimeout(t *testing.T) {
 				Action: r,
 			},
 		),
+	), nil)
+}
+
+func TestAdobeRouteTracing(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	os.Setenv("TRACING_ENABLED", "true")
+	defer func() {
+		os.Unsetenv("TRACING_ENABLED")
+	}()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{Fqdn: "tracing.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+				Tracing: &ingressroutev1.Tracing{
+					ClientSampling: uint8(65),
+					RandomSampling: uint8(75),
+				},
+			}},
+		},
+	})
+
+	r := &envoy_api_v2_route.Route{
+		Match:  routePrefix("/"),
+		Action: routecluster("default/ws/80/da39a3ee5e"),
+	}
+	r.Tracing = &envoy_api_v2_route.Tracing{
+		ClientSampling: &envoy_type.FractionalPercent{Numerator: uint32(65)},
+		RandomSampling: &envoy_type.FractionalPercent{Numerator: uint32(75)},
+	}
+
+	assertRDS(t, cc, "1", virtualhosts(
+		envoy.VirtualHost("tracing.hello.world", r),
 	), nil)
 }
 
@@ -1063,6 +1122,7 @@ func TestAdobeListenerFilterChainGroupingNotTLS(t *testing.T) {
 // == internal/dag/builder.go
 // re-allow root to root delegation
 // disable TLS 1.1
+// allow wildcard fqdn
 
 // Test the whole scenario: delegation created in a separate ns with a different secret
 func TestAdobeListenerRootToRootDelegation(t *testing.T) {
@@ -1244,6 +1304,80 @@ func TestAdobeListenerDisableTLS1_1(t *testing.T) {
 			FilterChains: []*envoy_api_v2_listener.FilterChain{
 				envoy.FilterChainTLS("no-tls-1-1.hello.world", &dag.Secret{Object: secret}, envoy.Filters(envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)), envoy_api_v2_auth.TlsParameters_TLSv1_2, "h2", "http/1.1"),
 			},
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     listenerType,
+		Nonce:       "1",
+	}, streamLDS(t, cc))
+}
+
+func TestAdobeListenerWildcardFqdn(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret",
+			Namespace: "ns",
+		},
+		Type: "kubernetes.io/tls",
+		Data: secretdata(CERTIFICATE, RSA_PRIVATE_KEY),
+	}
+	rh.OnAdd(secret)
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8081),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "*.hello.world.com",
+				TLS: &projcontour.TLS{
+					SecretName: "secret",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+			}},
+		},
+	})
+
+	protos := []proto.Message{
+		&v2.Listener{
+			Name:         "ingress_http",
+			Address:      envoy.SocketAddress("0.0.0.0", 8080),
+			FilterChains: envoy.FilterChains(envoy.HTTPConnectionManager("ingress_http", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+		},
+		&v2.Listener{
+			Name:    "ingress_https",
+			Address: envoy.SocketAddress("0.0.0.0", 8443),
+			ListenerFilters: envoy.ListenerFilters(
+				envoy.TLSInspector(),
+			),
+			FilterChains: filterchaintls("*.hello.world.com", secret, envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0), "h2", "http/1.1"),
 		},
 	}
 
@@ -1482,10 +1616,18 @@ func TestAdobeClusterHealthyPanicThreshold(t *testing.T) {
 // add ExpectedStatuses
 // add InitialJitter = 1s
 // add IntervalJitterPercent = 100
+// optional logging
 
 func TestAdobeClusterHealthcheck(t *testing.T) {
 	rh, cc, done := setup(t)
 	defer done()
+
+	// set up the env var
+	os.Setenv("HC_FAILURE_LOGGING_ENABLED", "true")
+
+	defer func() {
+		os.Unsetenv("HC_FAILURE_LOGGING_ENABLED")
+	}()
 
 	rh.OnAdd(&v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1539,6 +1681,8 @@ func TestAdobeClusterHealthcheck(t *testing.T) {
 					ExpectedStatuses: adobe.ExpectedStatuses,
 				},
 			},
+			EventLogPath:                 "/dev/stderr",
+			AlwaysLogHealthCheckFailures: true,
 		},
 	}
 	c.CommonHttpProtocolOptions = adobe.CommonHttpProtocolOptions
@@ -1807,6 +1951,7 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 
 // == internal/envoy/route.go
 // remove RouteAction.RetryPolicy
+// remove RouteAction.RequestMirrorPolicies (no test: not part of IngressRoute)
 // remove RouteHeader "x-request-start"
 // add VirtualHost.RetryPolicy
 
