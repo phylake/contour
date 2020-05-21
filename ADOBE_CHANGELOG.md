@@ -19,6 +19,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 ## v1.3.0-2.10.0-adobe
 
 - optional default TLS server
+- fix issue where an http svc would be grouped with an existing tcp_proxy svc
 
 ## v1.3.0-2.9.0-adobe
 
