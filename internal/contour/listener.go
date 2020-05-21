@@ -405,6 +405,10 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 					// No TransportSocket, no grouping
 					break
 				}
+				if isTCPProxyFilter(fc.Filters) {
+					// TCPProxy filter exists, no grouping
+					break
+				}
 				secret, minTls, maxTls := envoy.RetrieveSecretNameAndTLSVersions(fc.TransportSocket)
 				if secret == secretName && minTls == max(v.ListenerVisitorConfig.minProtoVersion(), vh.MinProtoVersion) && maxTls == maxProtoVersion(vh.MaxProtoVersion) {
 					fc.FilterChainMatch.ServerNames = append(fc.FilterChainMatch.ServerNames, vh.VirtualHost.Name)

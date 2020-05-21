@@ -7,6 +7,7 @@ import (
 	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -122,4 +123,14 @@ func maxProtoVersion(version envoy_api_v2_auth.TlsParameters_TlsProtocol) envoy_
 		return envoy_api_v2_auth.TlsParameters_TLSv1_3
 	}
 	return version
+}
+
+// isTCPProxyFilter returns true if the given list contains a tcp_proxy filter
+func isTCPProxyFilter(filters []*envoy_api_v2_listener.Filter) bool {
+	for _, f := range filters {
+		if f.Name == wellknown.TCPProxy {
+			return true
+		}
+	}
+	return false
 }
