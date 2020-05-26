@@ -402,12 +402,12 @@ func (v *listenerVisitor) visit(vertex dag.Vertex) {
 			secretName := envoy.Secretname(vh.Secret)
 			for _, fc := range v.listeners[ENVOY_HTTPS_LISTENER].FilterChains {
 				if fc.TransportSocket == nil {
-					// No TransportSocket, no grouping
-					break
+					// No TransportSocket, skip
+					continue
 				}
 				if isTCPProxyFilter(fc.Filters) {
-					// TCPProxy filter exists, no grouping
-					break
+					// TCPProxy filter exists, skip
+					continue
 				}
 				secret, minTls, maxTls := envoy.RetrieveSecretNameAndTLSVersions(fc.TransportSocket)
 				if secret == secretName && minTls == max(v.ListenerVisitorConfig.minProtoVersion(), vh.MinProtoVersion) && maxTls == maxProtoVersion(vh.MaxProtoVersion) {

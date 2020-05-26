@@ -1329,6 +1329,179 @@ func TestAdobeListenerFilterChainGroupingNotTCPProxy(t *testing.T) {
 	}, streamLDS(t, cc))
 }
 
+// One more: grouping stops if an existing group with a tcpproxy filter is found
+// e.g. 2 groups exists: tcp and http, another http service than can be grouped
+// with the 1st one wasn't
+func TestAdobeListenerFilterChainGroupingTCPProxyStopsIt(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	// grouping is by secret, so create a single one
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret",
+			Namespace: "ns",
+		},
+		Type: "kubernetes.io/tls",
+		Data: secretdata(CERTIFICATE, RSA_PRIVATE_KEY),
+	}
+	rh.OnAdd(secret)
+
+	// service 1 - http
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "http1",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol: "TCP",
+				Port:     81,
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "http1",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "fc-group-2http1.hello.world", // 2 for ordering
+				TLS: &projcontour.TLS{
+					SecretName: "secret",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "http1",
+					Port: 81,
+				}},
+			}},
+		},
+	})
+
+	// service 2 - tcp
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "tcp",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol: "TCP",
+				Port:     80,
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "tcp",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "fc-group-1tcp.hello.world", // 1 for ordering
+				TLS: &projcontour.TLS{
+					SecretName: "secret",
+				},
+			},
+			TCPProxy: &ingressroutev1.TCPProxy{
+				Services: []ingressroutev1.Service{{
+					Name: "tcp",
+					Port: 80,
+				}},
+			},
+		},
+	})
+
+	// service 2 - http
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "http2",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol: "TCP",
+				Port:     81,
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "http2",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "fc-group-3http2.hello.world", // 3 for ordering
+				TLS: &projcontour.TLS{
+					SecretName: "secret",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "http2",
+					Port: 81,
+				}},
+			}},
+		},
+	})
+
+	// hold the cluster for the tcp service
+	tcpCluster := &dag.Cluster{
+		Upstream: &dag.Service{
+			Name:      "tcp",
+			Namespace: "ns",
+			ServicePort: &v1.ServicePort{
+				Protocol: "TCP",
+				Port:     80,
+			},
+		},
+	}
+
+	protos := []proto.Message{
+		&v2.Listener{
+			Name:         "ingress_http",
+			Address:      envoy.SocketAddress("0.0.0.0", 8080),
+			FilterChains: envoy.FilterChains(envoy.HTTPConnectionManager("ingress_http", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+		},
+		&v2.Listener{
+			Name:    "ingress_https",
+			Address: envoy.SocketAddress("0.0.0.0", 8443),
+			ListenerFilters: envoy.ListenerFilters(
+				envoy.TLSInspector(),
+			),
+			FilterChains: []*envoy_api_v2_listener.FilterChain{
+				envoy.FilterChainTLS("fc-group-1tcp.hello.world", &dag.Secret{Object: secret}, envoy.Filters(envoy.TCPProxy("ingress_https", &dag.TCPProxy{Clusters: []*dag.Cluster{tcpCluster}}, envoy.FileAccessLogEnvoy("/dev/stdout"))), envoy_api_v2_auth.TlsParameters_TLSv1_1),
+				{
+					Filters: envoy.Filters(envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
+						ServerNames: []string{
+							"fc-group-2http1.hello.world",
+							"fc-group-3http2.hello.world",
+						},
+					},
+					TransportSocket: envoy.DownstreamTLSTransportSocket(envoy.DownstreamTLSContext(envoy.Secretname(&dag.Secret{Object: secret}), envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1")),
+				},
+			},
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     listenerType,
+		Nonce:       "3",
+	}, streamLDS(t, cc))
+}
+
 // == internal/dag/builder.go
 // re-allow root to root delegation
 // disable TLS 1.1
