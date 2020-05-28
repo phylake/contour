@@ -57,6 +57,7 @@ func RouteMatch(route *dag.Route) *envoy_api_v2_route.RouteMatch {
 // weighted cluster.
 func RouteRoute(r *dag.Route) *envoy_api_v2_route.Route_Route {
 	ra := envoy_api_v2_route.RouteAction{
+		RetryPolicy:   adobeRetryPolicy(r),
 		Timeout:       r.Timeout,
 		IdleTimeout:   r.IdleTimeout,
 		PrefixRewrite: r.PrefixRewrite,
@@ -282,14 +283,10 @@ func VirtualHost(hostname string, routes ...*envoy_api_v2_route.Route) *envoy_ap
 		domains = append(domains, hostname+":*")
 	}
 	return &envoy_api_v2_route.VirtualHost{
-		Name:    hashname(60, hostname),
-		Domains: domains,
-		Routes:  routes,
-		RetryPolicy: &envoy_api_v2_route.RetryPolicy{
-			RetryOn:                       "connect-failure",
-			NumRetries:                    protobuf.UInt32(3),
-			HostSelectionRetryMaxAttempts: 3,
-		},
+		Name:        hashname(60, hostname),
+		Domains:     domains,
+		Routes:      routes,
+		RetryPolicy: adobeDefaultRetryPolicy(),
 	}
 }
 
