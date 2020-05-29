@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## _next release_
+
+- remove annotations and ingress warnings
+
 ## v1.3.0-2.10.1-adobe
 
 - fix grouping issue introduced in v1.3.0-2.10.0-adobe
