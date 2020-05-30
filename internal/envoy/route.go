@@ -58,8 +58,8 @@ func RouteMatch(route *dag.Route) *envoy_api_v2_route.RouteMatch {
 func RouteRoute(r *dag.Route) *envoy_api_v2_route.Route_Route {
 	ra := envoy_api_v2_route.RouteAction{
 		RetryPolicy:   adobeRetryPolicy(r),
-		Timeout:       r.Timeout,
-		IdleTimeout:   r.IdleTimeout,
+		Timeout:       adobeResponseTimeout(r),
+		IdleTimeout:   adobeIdleTimeout(r),
 		PrefixRewrite: r.PrefixRewrite,
 	}
 	setHashPolicy(r, &ra)

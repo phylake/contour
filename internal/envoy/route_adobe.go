@@ -6,6 +6,7 @@ import (
 
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/duration"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/projectcontour/contour/internal/dag"
 	"github.com/projectcontour/contour/internal/protobuf"
@@ -206,4 +207,18 @@ func adobeRetryPolicy(r *dag.Route) *envoy_api_v2_route.RetryPolicy {
 	rp.HostSelectionRetryMaxAttempts = adobeDefault.HostSelectionRetryMaxAttempts
 
 	return rp
+}
+
+func adobeResponseTimeout(r *dag.Route) *duration.Duration {
+	if r.Timeout != nil {
+		return r.Timeout
+	}
+	return responseTimeout(r)
+}
+
+func adobeIdleTimeout(r *dag.Route) *duration.Duration {
+	if r.IdleTimeout != nil {
+		return r.IdleTimeout
+	}
+	return idleTimeout(r)
 }
