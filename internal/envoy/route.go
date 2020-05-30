@@ -57,10 +57,11 @@ func RouteMatch(route *dag.Route) *envoy_api_v2_route.RouteMatch {
 // weighted cluster.
 func RouteRoute(r *dag.Route) *envoy_api_v2_route.Route_Route {
 	ra := envoy_api_v2_route.RouteAction{
-		RetryPolicy:   adobeRetryPolicy(r),
-		Timeout:       adobeResponseTimeout(r),
-		IdleTimeout:   adobeIdleTimeout(r),
-		PrefixRewrite: r.PrefixRewrite,
+		RetryPolicy:           adobeRetryPolicy(r),
+		Timeout:               adobeResponseTimeout(r),
+		IdleTimeout:           adobeIdleTimeout(r),
+		PrefixRewrite:         r.PrefixRewrite,
+		RequestMirrorPolicies: mirrorPolicy(r),
 	}
 	setHashPolicy(r, &ra)
 
