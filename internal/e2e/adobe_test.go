@@ -8,6 +8,7 @@ package e2e
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -2333,10 +2334,92 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 }
 
 // == internal/envoy/route.go
-// remove RouteAction.RetryPolicy
+// merge RouteAction.RetryPolicy
 // remove RouteAction.RequestMirrorPolicies (no test: not part of IngressRoute)
 // remove RouteHeader "x-request-start"
 // add VirtualHost.RetryPolicy
+
+// test the RetryPolicy merging on its own
+func TestAdobeRouteRetryPolicy(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{Fqdn: "route.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+				RetryPolicy: &projcontour.RetryPolicy{
+					NumRetries:    51,
+					PerTryTimeout: "123s",
+				},
+			}},
+		},
+	})
+
+	r := routecluster("default/ws/80/da39a3ee5e")
+	r.Route.RetryPolicy = &envoy_api_v2_route.RetryPolicy{
+		RetryOn:                       strings.Join([]string{"5xx", adobe.RetryPolicy.RetryOn}, ","),
+		NumRetries:                    protobuf.UInt32(51),
+		PerTryTimeout:                 protobuf.Duration(123 * time.Second),
+		HostSelectionRetryMaxAttempts: adobe.RetryPolicy.HostSelectionRetryMaxAttempts,
+	}
+
+	protos := []proto.Message{
+		&v2.RouteConfiguration{
+			Name: "ingress_http",
+			VirtualHosts: []*envoy_api_v2_route.VirtualHost{
+				{
+					Name: "route.hello.world",
+					Domains: []string{
+						"route.hello.world",
+						"route.hello.world:*",
+					},
+					Routes: []*envoy_api_v2_route.Route{
+						{
+							Match:  routePrefix("/"),
+							Action: r,
+						},
+					},
+					RetryPolicy: adobe.RetryPolicy,
+				},
+			},
+		},
+		&v2.RouteConfiguration{
+			Name:         "ingress_https",
+			VirtualHosts: nil,
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     routeType,
+		Nonce:       "1",
+	}, streamRDS(t, cc))
+}
 
 func TestAdobeRoute(t *testing.T) {
 	rh, cc, done := setup(t)
@@ -2389,11 +2472,7 @@ func TestAdobeRoute(t *testing.T) {
 							Action: routecluster("default/ws/80/da39a3ee5e"),
 						},
 					},
-					RetryPolicy: &envoy_api_v2_route.RetryPolicy{
-						RetryOn:                       "connect-failure",
-						NumRetries:                    protobuf.UInt32(3),
-						HostSelectionRetryMaxAttempts: 3,
-					},
+					RetryPolicy: adobe.RetryPolicy,
 				},
 			},
 		},
