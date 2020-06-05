@@ -2,11 +2,13 @@ package envoy
 
 import (
 	"encoding/json"
+	"strings"
 
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes/any"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/projectcontour/contour/internal/dag"
+	"github.com/projectcontour/contour/internal/protobuf"
 )
 
 func PerFilterConfig(r *dag.Route) (conf map[string]*_struct.Struct) {
@@ -164,4 +166,44 @@ func setHashPolicy(r *dag.Route, ra *envoy_api_v2_route.RouteAction) {
 			ra.HashPolicy[i].Terminal = policy.Terminal
 		}
 	}
+}
+
+func adobeDefaultRetryPolicy() *envoy_api_v2_route.RetryPolicy {
+	return &envoy_api_v2_route.RetryPolicy{
+		RetryOn:                       "connect-failure",
+		NumRetries:                    protobuf.UInt32(3),
+		HostSelectionRetryMaxAttempts: 3,
+	}
+}
+
+// Merges the default Adobe RetryPolicy with the Route-level policy (Envoy doesn't merge)
+// https://www.envoyproxy.io/docs/envoy/v1.13.1/api-v2/api/v2/route/route_components.proto#envoy-api-field-route-virtualhost-retry-policy
+// https://www.envoyproxy.io/docs/envoy/v1.13.1/api-v2/api/v2/route/route_components.proto#envoy-api-field-route-routeaction-retry-policy
+func adobeRetryPolicy(r *dag.Route) *envoy_api_v2_route.RetryPolicy {
+	rp := retryPolicy(r)
+	// if there are no route-level policies, then there is nothing to merge: the
+	// Adobe VirtualHost-level policy will apply
+	if rp == nil {
+		return nil
+	}
+
+	adobeDefault := adobeDefaultRetryPolicy()
+
+	// RetryOn is a comma-separated list of strings
+	retryOnValues := []string{
+		rp.RetryOn,
+		adobeDefault.RetryOn,
+	}
+	rp.RetryOn = strings.Join(retryOnValues, ",")
+
+	// NumRetries is directly tied to PerTryTimeout - don't override the
+	// client-provided value
+	if rp.NumRetries == nil {
+		rp.NumRetries = adobeDefault.NumRetries
+	}
+
+	// HostSelectionRetryMaxAttempts is not configured by upstream
+	rp.HostSelectionRetryMaxAttempts = adobeDefault.HostSelectionRetryMaxAttempts
+
+	return rp
 }
