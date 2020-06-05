@@ -18,6 +18,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 ## _next release_
 
+- restore `retryPolicy` handling
 - remove annotations and ingress warnings
 
 ## v1.3.0-2.10.1-adobe

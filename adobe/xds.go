@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,10 +64,19 @@ var (
 // RDS customization
 // no default timeout, comes from ingressroute
 // no default HashPolicy, comes from ingressroute
-// no RetryPolicy
+// add route.VirtualHost.RetryPolicy, merge route.RouteAction.RetryPolicy if needed
 // no RequestMirrorPolicies
 // ClassAnnotation - test skipped
 // root to root delegation - test skipped
+
+// This is re-used in the e2e tests
+var (
+	RetryPolicy = &envoy_api_v2_route.RetryPolicy{
+		RetryOn:                       "connect-failure",
+		NumRetries:                    protobuf.UInt32(3),
+		HostSelectionRetryMaxAttempts: 3,
+	}
+)
 
 // SDS customization
 // none
@@ -110,10 +120,25 @@ func AdobefyXDS(t *testing.T, resp *v2.DiscoveryResponse) {
 		for _, r := range rec {
 			rc := r.(*v2.RouteConfiguration)
 			for _, vh := range rc.VirtualHosts {
+				vh.RetryPolicy = RetryPolicy
 				for _, r := range vh.Routes {
 					if rr, ok := r.GetAction().(*envoy_api_v2_route.Route_Route); ok {
 						rr.Route.IdleTimeout = nil
-						rr.Route.RetryPolicy = nil
+						// merge RetryPolicy, but only if one already exists
+						if rr.Route.RetryPolicy != nil {
+							// RetryOn
+							retryOnValues := []string{
+								rr.Route.RetryPolicy.RetryOn,
+								RetryPolicy.RetryOn,
+							}
+							rr.Route.RetryPolicy.RetryOn = strings.Join(retryOnValues, ",")
+							// NumRetries
+							if rr.Route.RetryPolicy.NumRetries == nil {
+								rr.Route.RetryPolicy.NumRetries = RetryPolicy.NumRetries
+							}
+							// HostSelectionRetryMaxAttempts
+							rr.Route.RetryPolicy.HostSelectionRetryMaxAttempts = RetryPolicy.HostSelectionRetryMaxAttempts
+						}
 						rr.Route.HashPolicy = nil
 						rr.Route.RequestMirrorPolicies = nil
 					}
