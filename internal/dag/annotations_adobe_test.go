@@ -1,9 +1,9 @@
 package dag
 
 import (
+	"fmt"
 	"testing"
 
-	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	"github.com/projectcontour/contour/internal/assert"
 	"github.com/projectcontour/contour/internal/k8s"
 
@@ -11,9 +11,7 @@ import (
 	"k8s.io/api/networking/v1beta1"
 )
 
-// customized version of TestAnnotationKindValidation()
-// annotationIsKnown() isn't modified for now (because we warn only)
-// validAnnotationForKind() invalidates annotations we don't want to support
+// Ensure "legacy" 'contour.heptio.com' annotations are supported forever
 func TestAdobeAnnotationKindValidation(t *testing.T) {
 	type status struct {
 		known bool
@@ -23,75 +21,80 @@ func TestAdobeAnnotationKindValidation(t *testing.T) {
 		obj         Object
 		annotations map[string]status
 	}{
+		// Ingress
+		// contour.heptio.com/num-retries: deprecated form of projectcontour.io/num-retries.
+		// contour.heptio.com/per-try-timeout: deprecated form of projectcontour.io/per-try-timeout.
+		// contour.heptio.com/request-timeout: deprecated form of projectcontour.io/response-timeout. Note this is response-timeout.
+		// contour.heptio.com/retry-on: deprecated form of projectcontour.io/retry-on.
+		// contour.heptio.com/tls-minimum-protocol-version: deprecated form of projectcontour.io/tls-minimum-protocol-version.
+		// contour.heptio.com/websocket-routes: deprecated form of projectcontour.io/websocket-routes.
+		// NOTE: contour.heptio.com/response-timeout was never supported, but is the correct name, therefore we support it.
 		"ingress": {
 			obj: &v1beta1.Ingress{},
 			annotations: map[string]status{
-				"kubernetes.io/ingress.class": {
+				"contour.heptio.com/num-retries": {
 					known: true, valid: true,
 				},
-				"projectcontour.io/ingress.class": {
-					known: true, valid: false,
+				"contour.heptio.com/per-try-timeout": {
+					known: true, valid: true,
 				},
-				"ingress.kubernetes.io/force-ssl-redirect": {
-					known: true, valid: false,
+				"contour.heptio.com/request-timeout": {
+					known: true, valid: true,
 				},
-				"foo.bar.io": {
-					known: false, valid: false,
+				"contour.heptio.com/retry-on": {
+					known: true, valid: true,
+				},
+				"contour.heptio.com/tls-minimum-protocol-version": {
+					known: true, valid: true,
+				},
+				"contour.heptio.com/websocket-routes": {
+					known: true, valid: true,
+				},
+				"contour.heptio.com/response-timeout": {
+					known: true, valid: true,
 				},
 			},
 		},
-		"ingressroute": {
-			obj: &ingressroutev1.IngressRoute{},
-			annotations: map[string]status{
-				"kubernetes.io/ingress.class": {
-					known: true, valid: true,
-				},
-				"projectcontour.io/ingress.class": {
-					known: true, valid: false,
-				},
-				"foo.bar.io": {
-					known: false, valid: false,
-				},
-			},
-		},
+		// Service
+		// contour.heptio.com/max-connections: deprecated form of projectcontour.io/max-connections
+		// contour.heptio.com/max-pending-requests: deprecated form of projectcontour.io/max-pending-requests.
+		// contour.heptio.com/max-requests: deprecated form of projectcontour.io/max-requests.
+		// contour.heptio.com/max-retries: deprecated form of projectcontour.io/max-retries.
+		// contour.heptio.com/upstream-protocol.{protocol} : deprecated form of projectcontour.io/upstream-protocol.{protocol}. (h2, h2c, and tls)
 		"service": {
 			obj: &v1.Service{},
 			annotations: map[string]status{
-				"foo.heptio.com/annotation": {
-					known: false, valid: false,
+				"contour.heptio.com/max-connections": {
+					known: true, valid: true,
 				},
-				"contour.heptio.com/annotation": {
-					known: true, valid: false,
+				"contour.heptio.com/max-pending-requests": {
+					known: true, valid: true,
 				},
-				"projectcontour.io/annotation": {
-					known: true, valid: false,
+				"contour.heptio.com/max-requests": {
+					known: true, valid: true,
+				},
+				"contour.heptio.com/max-retries": {
+					known: true, valid: true,
+				},
+				"contour.heptio.com/upstream-protocol.h2": {
+					known: true, valid: true,
 				},
 				"contour.heptio.com/upstream-protocol.h2c": {
 					known: true, valid: true,
 				},
-			},
-		},
-		"secrets": {
-			obj: &v1.Secret{},
-			annotations: map[string]status{
-				// In contour.heptio.com namespace but not valid on this kind.
-				"contour.heptio.com/ingress.class": {
-					known: true, valid: false,
-				},
-				// Unknown, so potentially valid.
-				"foo.io/secret-sauce": {
-					known: false, valid: true,
+				"contour.heptio.com/upstream-protocol.tls": {
+					known: true, valid: true,
 				},
 			},
 		},
 	}
 
 	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			for k, s := range tc.annotations {
+		for k, s := range tc.annotations {
+			t.Run(fmt.Sprintf("%s:%s", name, k), func(t *testing.T) {
 				assert.Equal(t, s.known, annotationIsKnown(k))
 				assert.Equal(t, s.valid, validAnnotationForKind(k8s.KindOf(tc.obj), k))
-			}
-		})
+			})
+		}
 	}
 }
