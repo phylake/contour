@@ -67,6 +67,12 @@ type Route struct {
 	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 
 	Tracing *Tracing `json:"tracing,omitempty"`
+	// The policy for managing request headers during proxying
+	// +optional
+	RequestHeadersPolicy *projcontour.HeadersPolicy `json:"requestHeadersPolicy,omitempty"`
+	// The policy for managing response headers during proxying
+	// +optional
+	ResponseHeadersPolicy *projcontour.HeadersPolicy `json:"responseHeadersPolicy,omitempty"`
 }
 
 // TimeoutPolicy define the attributes associated with timeout
