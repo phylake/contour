@@ -24,6 +24,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	_struct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/projectcontour/contour/adobe"
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	projcontour "github.com/projectcontour/contour/apis/projectcontour/v1"
@@ -44,6 +45,8 @@ import (
 // Timeout *Duration `json:"timeout,omitempty"`
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 // Tracing *Tracing `json:"tracing,omitempty"`
+// RequestHeadersPolicy *HeadersPolicy `json:"requestHeadersPolicy,omitempty"`
+// ResponseHeadersPolicy *HeadersPolicy `json:"responseHeadersPolicy,omitempty"`
 //
 // == Service
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
@@ -2473,6 +2476,163 @@ func TestAdobeRoute(t *testing.T) {
 						},
 					},
 					RetryPolicy: adobe.RetryPolicy,
+				},
+			},
+		},
+		&v2.RouteConfiguration{
+			Name:         "ingress_https",
+			VirtualHosts: nil,
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     routeType,
+		Nonce:       "1",
+	}, streamRDS(t, cc))
+}
+
+// == internal/envoy/route.go
+// add VirtualHost.RequestHeadersToAdd
+// add VirtualHost.RequestHeadersToRemove
+// add VirtualHost.ResponseHeadersToAdd
+// add VirtualHost.ResponseHeadersToRemove
+
+func TestAdobeRouteHeaderRewritePolicy(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{Fqdn: "route-header-rewrite.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+				RequestHeadersPolicy: &projcontour.HeadersPolicy{
+					Set: []projcontour.HeaderValue{{
+						Name:  "In-Foo",
+						Value: "bar",
+					},
+						{
+							Name:  "Request-Header-Two-Insert",
+							Value: "InFooBarTheSecond",
+						}},
+					Remove: []string{
+						"Abbracadabra",
+						"In-Bar",
+						"In-Baz",
+					},
+				},
+				ResponseHeadersPolicy: &projcontour.HeadersPolicy{
+					Set: []projcontour.HeaderValue{{
+						Name:  "Out-Foo",
+						Value: "goodbye",
+					},
+						{
+							Name:  "Response-Header-Two-Insert",
+							Value: "OutFooBarTheSecond",
+						}},
+					Remove: []string{
+						"Out-Baz",
+						"Request-Header-Two-Insert",
+					},
+				},
+			}},
+		},
+	})
+
+	protos := []proto.Message{
+		&v2.RouteConfiguration{
+			Name: "ingress_http",
+			VirtualHosts: []*envoy_api_v2_route.VirtualHost{
+				{
+					Name: "route-header-rewrite.hello.world",
+					Domains: []string{
+						"route-header-rewrite.hello.world",
+						"route-header-rewrite.hello.world:*",
+					},
+					Routes: []*envoy_api_v2_route.Route{
+						{
+							Match:  routePrefix("/"),
+							Action: routecluster("default/ws/80/da39a3ee5e"),
+							RequestHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "In-Foo",
+										Value: "bar",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "Request-Header-Two-Insert",
+										Value: "InFooBarTheSecond",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+							},
+							RequestHeadersToRemove: []string{
+								"Abbracadabra",
+								"In-Bar",
+								"In-Baz",
+							},
+							ResponseHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "Out-Foo",
+										Value: "goodbye",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "Response-Header-Two-Insert",
+										Value: "OutFooBarTheSecond",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+							},
+							ResponseHeadersToRemove: []string{
+								"Out-Baz",
+								"Request-Header-Two-Insert",
+							},
+						},
+					},
+					RetryPolicy: &envoy_api_v2_route.RetryPolicy{
+						RetryOn:                       "connect-failure",
+						NumRetries:                    protobuf.UInt32(3),
+						HostSelectionRetryMaxAttempts: 3,
+					},
 				},
 			},
 		},

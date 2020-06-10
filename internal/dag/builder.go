@@ -984,26 +984,6 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				return
 			}
 
-			var req *HeadersPolicy
-			var resp *HeadersPolicy
-			if route.RequestHeadersPolicy != nil {
-				reqHP, err := headersPolicy(route.RequestHeadersPolicy, true /* allow Host */)
-				if err != nil {
-					sw.SetInvalid(err.Error())
-					return
-				}
-				req = reqHP
-			}
-
-			if route.ResponseHeadersPolicy != nil {
-				respHP, err := headersPolicy(route.ResponseHeadersPolicy, false /* disallow Host */)
-				if err != nil {
-					sw.SetInvalid(err.Error())
-					return
-				}
-				resp = respHP
-			}
-
 			permitInsecure := route.PermitInsecure && !b.DisablePermitInsecure
 			r := &Route{
 				PathCondition:   &PrefixCondition{Prefix: route.Match},
@@ -1014,15 +994,24 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				RetryPolicy:     retryPolicy(route.RetryPolicy),
 				HashPolicy:      route.HashPolicy,
 				PerFilterConfig: route.PerFilterConfig,
-				// RequestHeadersPolicy:  req,
-				// ResponseHeadersPolicy: resp,
 			}
 
 			if route.RequestHeadersPolicy != nil {
-				r.RequestHeadersPolicy = req
+				reqHP, err := headersPolicy(route.RequestHeadersPolicy, true /* allow Host */)
+				if err != nil {
+					sw.SetInvalid(err.Error())
+					return
+				}
+				r.RequestHeadersPolicy = reqHP
 			}
+
 			if route.ResponseHeadersPolicy != nil {
-				r.ResponseHeadersPolicy = resp
+				respHP, err := headersPolicy(route.ResponseHeadersPolicy, false /* disallow Host */)
+				if err != nil {
+					sw.SetInvalid(err.Error())
+					return
+				}
+				r.ResponseHeadersPolicy = respHP
 			}
 
 			if route.IdleTimeout != nil {
