@@ -2242,10 +2242,8 @@ func TestAdobeRoute(t *testing.T) {
 }
 
 // == internal/envoy/route.go
-// add VirtualHost.RequestHeadersToAdd
-// add VirtualHost.RequestHeadersToRemove
-// add VirtualHost.ResponseHeadersToAdd
-// add VirtualHost.ResponseHeadersToRemove
+// add Route.RequestHeadersPolicy
+// add Route.ResponseHeadersPolicy
 
 func TestAdobeRouteHeaderRewritePolicy(t *testing.T) {
 	rh, cc, done := setup(t)
