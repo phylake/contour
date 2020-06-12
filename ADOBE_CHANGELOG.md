@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.3.0-2.11.0-adobe
+
+- expose RequestHeadersPolicy and ResponseHeadersPolicy config in IngressRoute
+
 ## v1.3.0-2.10.0-adobe
 
 - optional default TLS server
