@@ -8,6 +8,7 @@ package e2e
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -776,161 +777,6 @@ func TestAdobeTLSMaximumProtocolVersion(t *testing.T) {
 	}, streamLDS(t, cc))
 }
 
-// == internal/envoy/route.go
-// add Route.RequestHeadersPolicy
-// add Route.ResponseHeadersPolicy
-
-func TestAdobeRouteHeaderRewritePolicy(t *testing.T) {
-	rh, cc, done := setup(t)
-	defer done()
-
-	rh.OnAdd(&v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ws",
-			Namespace: "default",
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{{
-				Protocol:   "TCP",
-				Port:       80,
-				TargetPort: intstr.FromInt(8080),
-			}},
-		},
-	})
-
-	rh.OnAdd(&ingressroutev1.IngressRoute{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "simple",
-			Namespace: "default",
-		},
-		Spec: ingressroutev1.IngressRouteSpec{
-			VirtualHost: &projcontour.VirtualHost{Fqdn: "route-header-rewrite.hello.world"},
-			Routes: []ingressroutev1.Route{{
-				Match: "/",
-				Services: []ingressroutev1.Service{{
-					Name: "ws",
-					Port: 80,
-				}},
-				RequestHeadersPolicy: &projcontour.HeadersPolicy{
-					Set: []projcontour.HeaderValue{{
-						Name:  "In-Foo",
-						Value: "bar",
-					},
-						{
-							Name:  "Request-Header-Two-Insert",
-							Value: "InFooBarTheSecond",
-						}},
-					Remove: []string{
-						"Abbracadabra",
-						"In-Bar",
-						"In-Baz",
-					},
-				},
-				ResponseHeadersPolicy: &projcontour.HeadersPolicy{
-					Set: []projcontour.HeaderValue{{
-						Name:  "Out-Foo",
-						Value: "goodbye",
-					},
-						{
-							Name:  "Response-Header-Two-Insert",
-							Value: "OutFooBarTheSecond",
-						}},
-					Remove: []string{
-						"Out-Baz",
-						"Request-Header-Two-Insert",
-					},
-				},
-			}},
-		},
-	})
-
-	protos := []proto.Message{
-		&v2.RouteConfiguration{
-			Name: "ingress_http",
-			VirtualHosts: []*envoy_api_v2_route.VirtualHost{
-				{
-					Name: "route-header-rewrite.hello.world",
-					Domains: []string{
-						"route-header-rewrite.hello.world",
-						"route-header-rewrite.hello.world:*",
-					},
-					Routes: []*envoy_api_v2_route.Route{
-						{
-							Match:  routePrefix("/"),
-							Action: routecluster("default/ws/80/da39a3ee5e"),
-							RequestHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{
-								{
-									Header: &envoy_api_v2_core.HeaderValue{
-										Key:   "In-Foo",
-										Value: "bar",
-									},
-									Append: &wrappers.BoolValue{
-										Value: false,
-									},
-								},
-								{
-									Header: &envoy_api_v2_core.HeaderValue{
-										Key:   "Request-Header-Two-Insert",
-										Value: "InFooBarTheSecond",
-									},
-									Append: &wrappers.BoolValue{
-										Value: false,
-									},
-								},
-							},
-							RequestHeadersToRemove: []string{
-								"Abbracadabra",
-								"In-Bar",
-								"In-Baz",
-							},
-							ResponseHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{
-								{
-									Header: &envoy_api_v2_core.HeaderValue{
-										Key:   "Out-Foo",
-										Value: "goodbye",
-									},
-									Append: &wrappers.BoolValue{
-										Value: false,
-									},
-								},
-								{
-									Header: &envoy_api_v2_core.HeaderValue{
-										Key:   "Response-Header-Two-Insert",
-										Value: "OutFooBarTheSecond",
-									},
-									Append: &wrappers.BoolValue{
-										Value: false,
-									},
-								},
-							},
-							ResponseHeadersToRemove: []string{
-								"Out-Baz",
-								"Request-Header-Two-Insert",
-							},
-						},
-					},
-					RetryPolicy: &envoy_api_v2_route.RetryPolicy{
-						RetryOn:                       "connect-failure",
-						NumRetries:                    protobuf.UInt32(3),
-						HostSelectionRetryMaxAttempts: 3,
-					},
-				},
-			},
-		},
-		&v2.RouteConfiguration{
-			Name:         "ingress_https",
-			VirtualHosts: nil,
-		},
-	}
-
-	assert.Equal(t, &v2.DiscoveryResponse{
-		VersionInfo: adobe.Hash(protos),
-		Resources:   resources(t, protos...),
-		TypeUrl:     routeType,
-		Nonce:       "1",
-	}, streamRDS(t, cc))
-}
-
 // ==== Hard-coded customization ====
 
 // == internal/contour/listener.go
@@ -1475,6 +1321,179 @@ func TestAdobeListenerFilterChainGroupingNotTCPProxy(t *testing.T) {
 			FilterChains: []*envoy_api_v2_listener.FilterChain{
 				envoy.FilterChainTLS("fc-group-1tcp.hello.world", &dag.Secret{Object: secret}, envoy.Filters(envoy.TCPProxy("ingress_https", &dag.TCPProxy{Clusters: []*dag.Cluster{tcpCluster}}, envoy.FileAccessLogEnvoy("/dev/stdout"))), envoy_api_v2_auth.TlsParameters_TLSv1_1),
 				envoy.FilterChainTLS("fc-group-2http.hello.world", &dag.Secret{Object: secret}, envoy.Filters(envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)), envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1"),
+			},
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     listenerType,
+		Nonce:       "3",
+	}, streamLDS(t, cc))
+}
+
+// One more: grouping stops if an existing group with a tcpproxy filter is found
+// e.g. 2 groups exists: tcp and http, another http service than can be grouped
+// with the 1st one wasn't
+func TestAdobeListenerFilterChainGroupingTCPProxyStopsIt(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	// grouping is by secret, so create a single one
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret",
+			Namespace: "ns",
+		},
+		Type: "kubernetes.io/tls",
+		Data: secretdata(CERTIFICATE, RSA_PRIVATE_KEY),
+	}
+	rh.OnAdd(secret)
+
+	// service 1 - http
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "http1",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol: "TCP",
+				Port:     81,
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "http1",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "fc-group-2http1.hello.world", // 2 for ordering
+				TLS: &projcontour.TLS{
+					SecretName: "secret",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "http1",
+					Port: 81,
+				}},
+			}},
+		},
+	})
+
+	// service 2 - tcp
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "tcp",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol: "TCP",
+				Port:     80,
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "tcp",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "fc-group-1tcp.hello.world", // 1 for ordering
+				TLS: &projcontour.TLS{
+					SecretName: "secret",
+				},
+			},
+			TCPProxy: &ingressroutev1.TCPProxy{
+				Services: []ingressroutev1.Service{{
+					Name: "tcp",
+					Port: 80,
+				}},
+			},
+		},
+	})
+
+	// service 2 - http
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "http2",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol: "TCP",
+				Port:     81,
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "http2",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{
+				Fqdn: "fc-group-3http2.hello.world", // 3 for ordering
+				TLS: &projcontour.TLS{
+					SecretName: "secret",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "http2",
+					Port: 81,
+				}},
+			}},
+		},
+	})
+
+	// hold the cluster for the tcp service
+	tcpCluster := &dag.Cluster{
+		Upstream: &dag.Service{
+			Name:      "tcp",
+			Namespace: "ns",
+			ServicePort: &v1.ServicePort{
+				Protocol: "TCP",
+				Port:     80,
+			},
+		},
+	}
+
+	protos := []proto.Message{
+		&v2.Listener{
+			Name:         "ingress_http",
+			Address:      envoy.SocketAddress("0.0.0.0", 8080),
+			FilterChains: envoy.FilterChains(envoy.HTTPConnectionManager("ingress_http", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+		},
+		&v2.Listener{
+			Name:    "ingress_https",
+			Address: envoy.SocketAddress("0.0.0.0", 8443),
+			ListenerFilters: envoy.ListenerFilters(
+				envoy.TLSInspector(),
+			),
+			FilterChains: []*envoy_api_v2_listener.FilterChain{
+				envoy.FilterChainTLS("fc-group-1tcp.hello.world", &dag.Secret{Object: secret}, envoy.Filters(envoy.TCPProxy("ingress_https", &dag.TCPProxy{Clusters: []*dag.Cluster{tcpCluster}}, envoy.FileAccessLogEnvoy("/dev/stdout"))), envoy_api_v2_auth.TlsParameters_TLSv1_1),
+				{
+					Filters: envoy.Filters(envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+					FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
+						ServerNames: []string{
+							"fc-group-2http1.hello.world",
+							"fc-group-3http2.hello.world",
+						},
+					},
+					TransportSocket: envoy.DownstreamTLSTransportSocket(envoy.DownstreamTLSContext(envoy.Secretname(&dag.Secret{Object: secret}), envoy_api_v2_auth.TlsParameters_TLSv1_1, "h2", "http/1.1")),
+				},
 			},
 		},
 	}
@@ -2318,10 +2337,92 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 }
 
 // == internal/envoy/route.go
-// remove RouteAction.RetryPolicy
+// merge RouteAction.RetryPolicy
 // remove RouteAction.RequestMirrorPolicies (no test: not part of IngressRoute)
 // remove RouteHeader "x-request-start"
 // add VirtualHost.RetryPolicy
+
+// test the RetryPolicy merging on its own
+func TestAdobeRouteRetryPolicy(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{Fqdn: "route.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+				RetryPolicy: &projcontour.RetryPolicy{
+					NumRetries:    51,
+					PerTryTimeout: "123s",
+				},
+			}},
+		},
+	})
+
+	r := routecluster("default/ws/80/da39a3ee5e")
+	r.Route.RetryPolicy = &envoy_api_v2_route.RetryPolicy{
+		RetryOn:                       strings.Join([]string{"5xx", adobe.RetryPolicy.RetryOn}, ","),
+		NumRetries:                    protobuf.UInt32(51),
+		PerTryTimeout:                 protobuf.Duration(123 * time.Second),
+		HostSelectionRetryMaxAttempts: adobe.RetryPolicy.HostSelectionRetryMaxAttempts,
+	}
+
+	protos := []proto.Message{
+		&v2.RouteConfiguration{
+			Name: "ingress_http",
+			VirtualHosts: []*envoy_api_v2_route.VirtualHost{
+				{
+					Name: "route.hello.world",
+					Domains: []string{
+						"route.hello.world",
+						"route.hello.world:*",
+					},
+					Routes: []*envoy_api_v2_route.Route{
+						{
+							Match:  routePrefix("/"),
+							Action: r,
+						},
+					},
+					RetryPolicy: adobe.RetryPolicy,
+				},
+			},
+		},
+		&v2.RouteConfiguration{
+			Name:         "ingress_https",
+			VirtualHosts: nil,
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     routeType,
+		Nonce:       "1",
+	}, streamRDS(t, cc))
+}
 
 func TestAdobeRoute(t *testing.T) {
 	rh, cc, done := setup(t)
@@ -2372,6 +2473,157 @@ func TestAdobeRoute(t *testing.T) {
 						{
 							Match:  routePrefix("/"),
 							Action: routecluster("default/ws/80/da39a3ee5e"),
+						},
+					},
+					RetryPolicy: adobe.RetryPolicy,
+				},
+			},
+		},
+		&v2.RouteConfiguration{
+			Name:         "ingress_https",
+			VirtualHosts: nil,
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     routeType,
+		Nonce:       "1",
+	}, streamRDS(t, cc))
+}
+
+// == internal/envoy/route.go
+// add Route.RequestHeadersPolicy
+// add Route.ResponseHeadersPolicy
+
+func TestAdobeRouteHeaderRewritePolicy(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{Fqdn: "route-header-rewrite.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+				RequestHeadersPolicy: &projcontour.HeadersPolicy{
+					Set: []projcontour.HeaderValue{{
+						Name:  "In-Foo",
+						Value: "bar",
+					},
+						{
+							Name:  "Request-Header-Two-Insert",
+							Value: "InFooBarTheSecond",
+						}},
+					Remove: []string{
+						"Abbracadabra",
+						"In-Bar",
+						"In-Baz",
+					},
+				},
+				ResponseHeadersPolicy: &projcontour.HeadersPolicy{
+					Set: []projcontour.HeaderValue{{
+						Name:  "Out-Foo",
+						Value: "goodbye",
+					},
+						{
+							Name:  "Response-Header-Two-Insert",
+							Value: "OutFooBarTheSecond",
+						}},
+					Remove: []string{
+						"Out-Baz",
+						"Request-Header-Two-Insert",
+					},
+				},
+			}},
+		},
+	})
+
+	protos := []proto.Message{
+		&v2.RouteConfiguration{
+			Name: "ingress_http",
+			VirtualHosts: []*envoy_api_v2_route.VirtualHost{
+				{
+					Name: "route-header-rewrite.hello.world",
+					Domains: []string{
+						"route-header-rewrite.hello.world",
+						"route-header-rewrite.hello.world:*",
+					},
+					Routes: []*envoy_api_v2_route.Route{
+						{
+							Match:  routePrefix("/"),
+							Action: routecluster("default/ws/80/da39a3ee5e"),
+							RequestHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "In-Foo",
+										Value: "bar",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "Request-Header-Two-Insert",
+										Value: "InFooBarTheSecond",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+							},
+							RequestHeadersToRemove: []string{
+								"Abbracadabra",
+								"In-Bar",
+								"In-Baz",
+							},
+							ResponseHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "Out-Foo",
+										Value: "goodbye",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "Response-Header-Two-Insert",
+										Value: "OutFooBarTheSecond",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+							},
+							ResponseHeadersToRemove: []string{
+								"Out-Baz",
+								"Request-Header-Two-Insert",
+							},
 						},
 					},
 					RetryPolicy: &envoy_api_v2_route.RetryPolicy{
