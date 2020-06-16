@@ -2543,7 +2543,6 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 
 // == internal/envoy/route.go
 // merge RouteAction.RetryPolicy
-// remove RouteAction.RequestMirrorPolicies (no test: not part of IngressRoute)
 // remove RouteHeader "x-request-start"
 // add VirtualHost.RetryPolicy
 // ensure Ingress.Annotation["contour.heptio.com/response-timeout"] can't be < 0

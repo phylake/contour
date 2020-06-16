@@ -16,11 +16,12 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
-## _next release_
+## v1.3.0-2.11.0-adobe
 
 - expose RequestHeadersPolicy and ResponseHeadersPolicy config in IngressRoute
 - restore `retryPolicy` handling
-- remove annotations and ingress warnings
+- restore timeouts via annotation on Ingress resources
+- remove annotations and Ingress warnings
 
 ## v1.3.0-2.10.1-adobe
 

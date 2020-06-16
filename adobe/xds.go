@@ -65,7 +65,6 @@ var (
 // no default timeout, comes from ingressroute
 // no default HashPolicy, comes from ingressroute
 // add route.VirtualHost.RetryPolicy, merge route.RouteAction.RetryPolicy if needed
-// no RequestMirrorPolicies
 // ClassAnnotation - test skipped
 // root to root delegation - test skipped
 
@@ -140,7 +139,6 @@ func AdobefyXDS(t *testing.T, resp *v2.DiscoveryResponse) {
 							rr.Route.RetryPolicy.HostSelectionRetryMaxAttempts = RetryPolicy.HostSelectionRetryMaxAttempts
 						}
 						rr.Route.HashPolicy = nil
-						rr.Route.RequestMirrorPolicies = nil
 					}
 				}
 			}
