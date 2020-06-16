@@ -34,6 +34,7 @@ import (
 	"github.com/projectcontour/contour/internal/envoy"
 	"github.com/projectcontour/contour/internal/protobuf"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -42,6 +43,7 @@ import (
 // == Route
 // HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
 // PerFilterConfig *PerFilterConfig `json:"perFilterConfig,omitempty"`
+// TimeoutPolicy is ignored
 // Timeout *Duration `json:"timeout,omitempty"`
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 // Tracing *Tracing `json:"tracing,omitempty"`
@@ -464,6 +466,54 @@ func TestAdobeRoutePerFilterConfigOrdered(t *testing.T) {
 
 	assertRDS(t, cc, "1", virtualhosts(
 		envoy.VirtualHost("perfilterconfig-ordered.hello.world", r),
+	), nil)
+}
+
+func TestAdobeRouteTimeoutPolicy(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &projcontour.VirtualHost{Fqdn: "route-timeoutpolicy.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+				TimeoutPolicy: &ingressroutev1.TimeoutPolicy{
+					Request: "10s",
+				},
+			}},
+		},
+	})
+
+	assertRDS(t, cc, "1", virtualhosts(
+		envoy.VirtualHost("route-timeoutpolicy.hello.world",
+			&envoy_api_v2_route.Route{
+				Match:  routePrefix("/"),
+				Action: routecluster("default/ws/80/da39a3ee5e"),
+			},
+		),
 	), nil)
 }
 
@@ -2496,6 +2546,7 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 // remove RouteAction.RequestMirrorPolicies (no test: not part of IngressRoute)
 // remove RouteHeader "x-request-start"
 // add VirtualHost.RetryPolicy
+// ensure Ingress.Annotation["contour.heptio.com/response-timeout"] can't be < 0
 
 // test the RetryPolicy merging on its own
 func TestAdobeRouteRetryPolicy(t *testing.T) {
@@ -2579,6 +2630,75 @@ func TestAdobeRouteRetryPolicy(t *testing.T) {
 	}, streamRDS(t, cc))
 }
 
+func TestAdobeIngressAnnotationTimeout(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&v1beta1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+			Annotations: map[string]string{
+				"contour.heptio.com/response-timeout": "-1s", // negative
+			},
+		},
+		Spec: v1beta1.IngressSpec{
+			Backend: &v1beta1.IngressBackend{
+				ServiceName: "ws",
+				ServicePort: intstr.FromInt(80),
+			},
+		},
+	})
+
+	r := routecluster("default/ws/80/da39a3ee5e")
+	r.Route.Timeout = protobuf.Duration(0) // contour floors this to 0
+
+	protos := []proto.Message{
+		&v2.RouteConfiguration{
+			Name: "ingress_http",
+			VirtualHosts: []*envoy_api_v2_route.VirtualHost{
+				{
+					Name:    "*",
+					Domains: []string{"*"},
+					Routes: []*envoy_api_v2_route.Route{
+						{
+							Match:  routePrefix("/"),
+							Action: r,
+						},
+					},
+					RetryPolicy: adobe.RetryPolicy,
+				},
+			},
+		},
+		&v2.RouteConfiguration{
+			Name:         "ingress_https",
+			VirtualHosts: nil,
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     routeType,
+		Nonce:       "1",
+	}, streamRDS(t, cc))
+}
+
+// test all of the rest in 1 swoop
 func TestAdobeRoute(t *testing.T) {
 	rh, cc, done := setup(t)
 	defer done()
