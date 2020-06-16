@@ -996,6 +996,24 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				PerFilterConfig: route.PerFilterConfig,
 			}
 
+			if route.RequestHeadersPolicy != nil {
+				reqHP, err := headersPolicy(route.RequestHeadersPolicy, true /* allow Host */)
+				if err != nil {
+					sw.SetInvalid(err.Error())
+					return
+				}
+				r.RequestHeadersPolicy = reqHP
+			}
+
+			if route.ResponseHeadersPolicy != nil {
+				respHP, err := headersPolicy(route.ResponseHeadersPolicy, false /* disallow Host */)
+				if err != nil {
+					sw.SetInvalid(err.Error())
+					return
+				}
+				r.ResponseHeadersPolicy = respHP
+			}
+
 			if route.IdleTimeout != nil {
 				if d, err := ptypes.Duration(&route.IdleTimeout.Duration); err == nil {
 					if d > time.Hour {
