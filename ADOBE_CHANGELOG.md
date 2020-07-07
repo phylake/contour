@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.3.0-2.11.1-adobe
+
+- upgrade go to 1.13.12
+
 ## v1.3.0-2.11.0-adobe
 
 - expose RequestHeadersPolicy and ResponseHeadersPolicy config in IngressRoute
