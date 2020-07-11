@@ -15,6 +15,7 @@
 package assert
 
 import (
+	"strings"
 	"testing"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -23,6 +24,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/projectcontour/contour/adobe"
 )
 
 type Assert struct {
@@ -42,11 +44,22 @@ func (a Assert) Equal(want, got interface{}) {
 	a.t.Helper()
 	opts := []cmp.Option{
 		cmpopts.IgnoreFields(v2.DiscoveryResponse{}, "VersionInfo", "Nonce"),
-		cmpopts.AcyclicTransformer("UnmarshalAny", unmarshalAny),
+		cmp.Transformer("UnmarshalAny", unmarshalAny),
 		// errors to be equal only if both are nil or both are non-nil.
 		cmp.Comparer(func(x, y error) bool {
 			return (x == nil) == (y == nil)
 		}),
+	}
+	// upstream tests fixup
+	if !strings.HasPrefix(a.t.Name(), "TestAdobe") {
+		// for xDS tests, "adobefy" the response (aka "want")
+		// for the other tests, the modifications are ignored during the diff
+		// TODO(lrouquet): only "adobefy" the "want" for all tests, retire IgnoreFields() if possible
+		if dr, ok := want.(*v2.DiscoveryResponse); ok && true {
+			adobe.AdobefyXDS(a.t, dr)
+		} else {
+			opts = append(opts, adobe.IgnoreFields()...)
+		}
 	}
 	diff := cmp.Diff(want, got, opts...)
 	if diff != "" {

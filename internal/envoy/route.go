@@ -58,13 +58,13 @@ func RouteMatch(route *dag.Route) *envoy_api_v2_route.RouteMatch {
 // weighted cluster.
 func RouteRoute(r *dag.Route) *envoy_api_v2_route.Route_Route {
 	ra := envoy_api_v2_route.RouteAction{
-		RetryPolicy:           retryPolicy(r),
-		Timeout:               responseTimeout(r),
-		IdleTimeout:           idleTimeout(r),
+		RetryPolicy:           adobeRetryPolicy(r),
+		Timeout:               adobeResponseTimeout(r),
+		IdleTimeout:           adobeIdleTimeout(r),
 		PrefixRewrite:         r.PrefixRewrite,
-		HashPolicy:            hashPolicy(r),
 		RequestMirrorPolicies: mirrorPolicy(r),
 	}
+	setHashPolicy(r, &ra)
 
 	// Check for host header policy and set if found
 	if val := hostReplaceHeader(r.RequestHeadersPolicy); val != "" {
@@ -289,20 +289,19 @@ func VirtualHost(hostname string, routes ...*envoy_api_v2_route.Route) *envoy_ap
 		domains = append(domains, hostname+":*")
 	}
 	return &envoy_api_v2_route.VirtualHost{
-		Name:    hashname(60, hostname),
-		Domains: domains,
-		Routes:  routes,
+		Name:        hashname(60, hostname),
+		Domains:     domains,
+		Routes:      routes,
+		RetryPolicy: adobeDefaultRetryPolicy(),
 	}
 }
 
 // RouteConfiguration returns a *v2.RouteConfiguration.
 func RouteConfiguration(name string, virtualhosts ...*envoy_api_v2_route.VirtualHost) *v2.RouteConfiguration {
 	return &v2.RouteConfiguration{
-		Name:         name,
-		VirtualHosts: virtualhosts,
-		RequestHeadersToAdd: Headers(
-			AppendHeader("x-request-start", "t=%START_TIME(%s.%3f)%"),
-		),
+		Name:                name,
+		VirtualHosts:        virtualhosts,
+		RequestHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{},
 	}
 }
 

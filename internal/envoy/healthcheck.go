@@ -14,9 +14,12 @@
 package envoy
 
 import (
+	"os"
+	"strconv"
 	"time"
 
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_types "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/projectcontour/contour/internal/dag"
@@ -25,11 +28,13 @@ import (
 
 const (
 	// Default healthcheck / lb algorithm values
-	hcTimeout            = 2 * time.Second
-	hcInterval           = 10 * time.Second
-	hcUnhealthyThreshold = 3
-	hcHealthyThreshold   = 2
-	hcHost               = "contour-envoy-healthcheck"
+	hcTimeout               = 2 * time.Second
+	hcInterval              = 10 * time.Second
+	hcInitialJitter         = 1 * time.Second
+	hcIntervalJitterPercent = 100
+	hcUnhealthyThreshold    = 3
+	hcHealthyThreshold      = 2
+	hcHost                  = "contour-envoy-healthcheck"
 )
 
 // httpHealthCheck returns a *envoy_api_v2_core.HealthCheck value for HTTP Routes
@@ -42,18 +47,34 @@ func httpHealthCheck(cluster *dag.Cluster) *envoy_api_v2_core.HealthCheck {
 
 	// TODO(dfc) why do we need to specify our own default, what is the default
 	// that envoy applies if these fields are left nil?
-	return &envoy_api_v2_core.HealthCheck{
-		Timeout:            durationOrDefault(hc.Timeout, hcTimeout),
-		Interval:           durationOrDefault(hc.Interval, hcInterval),
-		UnhealthyThreshold: countOrDefault(hc.UnhealthyThreshold, hcUnhealthyThreshold),
-		HealthyThreshold:   countOrDefault(hc.HealthyThreshold, hcHealthyThreshold),
+	healthCheck := &envoy_api_v2_core.HealthCheck{
+		Timeout:               durationOrDefault(hc.Timeout, hcTimeout),
+		Interval:              durationOrDefault(hc.Interval, hcInterval),
+		InitialJitter:         durationOrDefault(hcInitialJitter, hcInitialJitter),
+		IntervalJitterPercent: hcIntervalJitterPercent,
+		UnhealthyThreshold:    countOrDefault(hc.UnhealthyThreshold, hcUnhealthyThreshold),
+		HealthyThreshold:      countOrDefault(hc.HealthyThreshold, hcHealthyThreshold),
 		HealthChecker: &envoy_api_v2_core.HealthCheck_HttpHealthCheck_{
 			HttpHealthCheck: &envoy_api_v2_core.HealthCheck_HttpHealthCheck{
 				Path: hc.Path,
 				Host: host,
+				// [200, 400) so 200-399 to match K8s probes
+				ExpectedStatuses: []*envoy_types.Int64Range{
+					{
+						Start: 200,
+						End:   400,
+					},
+				},
 			},
 		},
 	}
+
+	if enabled, err := strconv.ParseBool(os.Getenv("HC_FAILURE_LOGGING_ENABLED")); enabled && err == nil {
+		healthCheck.EventLogPath = "/dev/stderr"
+		healthCheck.AlwaysLogHealthCheckFailures = true
+	}
+
+	return healthCheck
 }
 
 // tcpHealthCheck returns a *envoy_api_v2_core.HealthCheck value for TCPProxies

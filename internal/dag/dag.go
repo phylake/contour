@@ -21,6 +21,8 @@ import (
 	"time"
 
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"github.com/golang/protobuf/ptypes/duration"
+	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	"github.com/projectcontour/contour/internal/k8s"
 	v1 "k8s.io/api/core/v1"
 )
@@ -120,6 +122,16 @@ type Route struct {
 
 	// ResponseHeadersPolicy defines how headers are managed during forwarding
 	ResponseHeadersPolicy *HeadersPolicy
+
+	Timeout *duration.Duration
+
+	HashPolicy []ingressroutev1.HashPolicy
+
+	PerFilterConfig *ingressroutev1.PerFilterConfig
+
+	IdleTimeout *duration.Duration
+
+	Tracing *ingressroutev1.Tracing
 }
 
 // HasPathPrefix returns whether this route has a PrefixPathCondition.
@@ -257,6 +269,9 @@ type SecureVirtualHost struct {
 
 	// TLS minimum protocol version. Defaults to envoy_api_v2_auth.TlsParameters_TLS_AUTO
 	MinProtoVersion envoy_api_v2_auth.TlsParameters_TlsProtocol
+
+	// TLS maximum protocol version. Defaults to envoy_api_v2_auth.TlsParameters_TLS_AUTO
+	MaxProtoVersion envoy_api_v2_auth.TlsParameters_TlsProtocol
 
 	// The cert and key for this host.
 	Secret *Secret
@@ -419,6 +434,8 @@ type Cluster struct {
 	// is used if the route is configured to proxy to an externalService type.
 	// If the value is not set, then SNI is not changed.
 	SNI string
+
+	IdleTimeout *duration.Duration
 }
 
 func (c Cluster) Visit(f func(Vertex)) {

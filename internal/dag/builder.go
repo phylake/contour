@@ -19,11 +19,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/google/go-cmp/cmp"
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	projcontour "github.com/projectcontour/contour/apis/projectcontour/v1"
@@ -427,8 +429,12 @@ func (b *Builder) computeIngressRoute(ir *ingressroutev1.IngressRoute) {
 	sw.WithValue("vhost", host)
 
 	if strings.Contains(host, "*") {
-		sw.SetInvalid("Spec.VirtualHost.Fqdn %q cannot use wildcards", host)
-		return
+		// Adobe - we allow, but with a bit of validation:
+		// no top domain, no "*"
+		if !strings.HasPrefix(host, "*") || strings.Count(host, ".") < 3 {
+			sw.SetInvalid("Spec.VirtualHost.Fqdn %q is invalid", host)
+			return
+		}
 	}
 
 	var enforceTLS, passthrough bool
@@ -453,6 +459,7 @@ func (b *Builder) computeIngressRoute(ir *ingressroutev1.IngressRoute) {
 			svhost := b.lookupSecureVirtualHost(ir.Spec.VirtualHost.Fqdn)
 			svhost.Secret = sec
 			svhost.MinProtoVersion = annotation.MinProtoVersion(ir.Spec.VirtualHost.TLS.MinimumProtocolVersion)
+			svhost.MaxProtoVersion = annotation.MaxProtoVersion(ir.Spec.VirtualHost.TLS.MaximumProtocolVersion)
 			enforceTLS = true
 		}
 	}
@@ -1069,13 +1076,69 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 
 			permitInsecure := route.PermitInsecure && !b.DisablePermitInsecure
 			r := &Route{
-				PathCondition: &PrefixCondition{Prefix: route.Match},
-				Websocket:     route.EnableWebsockets,
-				HTTPSUpgrade:  routeEnforceTLS(enforceTLS, permitInsecure),
-				PrefixRewrite: route.PrefixRewrite,
-				TimeoutPolicy: ingressrouteTimeoutPolicy(route.TimeoutPolicy),
-				RetryPolicy:   retryPolicy(route.RetryPolicy),
+				PathCondition:   &PrefixCondition{Prefix: route.Match},
+				Websocket:       route.EnableWebsockets,
+				HTTPSUpgrade:    routeEnforceTLS(enforceTLS, permitInsecure),
+				PrefixRewrite:   route.PrefixRewrite,
+				RetryPolicy:     retryPolicy(route.RetryPolicy),
+				HashPolicy:      route.HashPolicy,
+				PerFilterConfig: route.PerFilterConfig,
 			}
+
+			if route.RequestHeadersPolicy != nil {
+				reqHP, err := headersPolicy(route.RequestHeadersPolicy, true /* allow Host */)
+				if err != nil {
+					sw.SetInvalid(err.Error())
+					return
+				}
+				r.RequestHeadersPolicy = reqHP
+			}
+
+			if route.ResponseHeadersPolicy != nil {
+				respHP, err := headersPolicy(route.ResponseHeadersPolicy, false /* disallow Host */)
+				if err != nil {
+					sw.SetInvalid(err.Error())
+					return
+				}
+				r.ResponseHeadersPolicy = respHP
+			}
+
+			if route.IdleTimeout != nil {
+				if d, err := ptypes.Duration(&route.IdleTimeout.Duration); err == nil {
+					if d > time.Hour {
+						r.IdleTimeout = ptypes.DurationProto(time.Hour)
+					} else if d <= 0 {
+						sw.SetInvalid("route %q: idle timeout can not be disabled", route.Match)
+						return
+					} else {
+						r.IdleTimeout = &route.IdleTimeout.Duration
+					}
+				}
+			}
+
+			if route.Timeout != nil {
+				if d, err := ptypes.Duration(&route.Timeout.Duration); err == nil {
+					if d < 0 {
+						sw.SetInvalid("route %q: timeout value must be >= 0", route.Match)
+						return
+					} else {
+						r.Timeout = &route.Timeout.Duration
+					}
+				}
+			}
+
+			if route.Tracing != nil {
+				if route.Tracing.ClientSampling > 100 {
+					sw.SetInvalid("route %q: tracing clientSampling must be in the range [0,100]", route.Match)
+					return
+				} else if route.Tracing.RandomSampling > 100 {
+					sw.SetInvalid("route %q: tracing randomSampling must be in the range [0,100]", route.Match)
+					return
+				} else {
+					r.Tracing = route.Tracing
+				}
+			}
+
 			for _, service := range route.Services {
 				if service.Port < 1 || service.Port > 65535 {
 					sw.SetInvalid("route %q: service %q: port must be in the range 1-65535", route.Match, service.Name)
@@ -1101,14 +1164,29 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 					}
 				}
 
-				r.Clusters = append(r.Clusters, &Cluster{
+				c := &Cluster{
 					Upstream:              s,
 					LoadBalancerPolicy:    service.Strategy,
 					Weight:                uint32(service.Weight),
 					HTTPHealthCheckPolicy: ingressrouteHealthCheckPolicy(service.HealthCheck),
 					UpstreamValidation:    uv,
 					Protocol:              s.Protocol,
-				})
+				}
+
+				if service.IdleTimeout != nil {
+					if d, err := ptypes.Duration(&service.IdleTimeout.Duration); err == nil {
+						if d > time.Hour {
+							c.IdleTimeout = ptypes.DurationProto(time.Hour)
+						} else if d <= 0 {
+							sw.SetInvalid("route: %q service %q: idle timeout can not be disabled", route.Match, service.Name)
+							return
+						} else {
+							c.IdleTimeout = &service.IdleTimeout.Duration
+						}
+					}
+				}
+
+				r.Clusters = append(r.Clusters, c)
 			}
 
 			b.lookupVirtualHost(host).addRoute(r)
@@ -1130,10 +1208,11 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 		}
 
 		if dest, ok := b.Source.ingressroutes[k8s.FullName{Name: route.Delegate.Name, Namespace: namespace}]; ok {
-			if dest.Spec.VirtualHost != nil {
-				sw.SetInvalid("root ingressroute cannot delegate to another root ingressroute")
-				return
-			}
+			// Adobe - allow root to root delegation
+			// if dest.Spec.VirtualHost != nil {
+			// 	sw.SetInvalid("root ingressroute cannot delegate to another root ingressroute")
+			// 	return
+			// }
 
 			// dest is not an orphaned ingress route, as there is an IR that points to it
 			delete(b.orphaned, k8s.FullName{Name: dest.Name, Namespace: dest.Namespace})

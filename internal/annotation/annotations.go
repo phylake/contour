@@ -58,6 +58,8 @@ var annotationsByKind = map[string]map[string]struct{}{
 		"kubernetes.io/ingress.class":                    {},
 		"projectcontour.io/ingress.class":                {},
 		"projectcontour.io/num-retries":                  {},
+		"projectcontour.io/per-try-timeout":              {},
+		"contour.heptio.com/request-timeout":             {},
 		"projectcontour.io/response-timeout":             {},
 		"projectcontour.io/retry-on":                     {},
 		"projectcontour.io/tls-minimum-protocol-version": {},
@@ -85,6 +87,10 @@ var annotationsByKind = map[string]map[string]struct{}{
 // ValidForKind checks if a particular annotation is valid for a given Kind.
 func ValidForKind(kind string, key string) bool {
 	if a, ok := annotationsByKind[kind]; ok {
+		// Adobe - if the name is valid, return right away.
+		if _, ok := a[key]; ok {
+			return ok
+		}
 		// Canonicalize the name while we still have legacy support.
 		key = strings.Replace(key, "contour.heptio.com/", "projectcontour.io/", -1)
 		_, ok := a[key]

@@ -53,6 +53,9 @@ type TLS struct {
 	// Minimum TLS version this vhost should negotiate
 	// +optional
 	MinimumProtocolVersion string `json:"minimumProtocolVersion,omitempty"`
+	// Maximum TLS version this vhost should negotiate
+	// +optional
+	MaximumProtocolVersion string `json:"maximumProtocolVersion,omitempty"`
 	// If Passthrough is set to true, the SecretName will be ignored
 	// and the encrypted handshake will be passed through to the
 	// backing cluster.
@@ -86,6 +89,22 @@ type Route struct {
 	// The retry policy for this route
 	// +optional
 	RetryPolicy *projcontour.RetryPolicy `json:"retryPolicy,omitempty"`
+
+	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
+
+	PerFilterConfig *PerFilterConfig `json:"perFilterConfig,omitempty"`
+
+	Timeout *Duration `json:"timeout,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
+
+	Tracing *Tracing `json:"tracing,omitempty"`
+	// The policy for managing request headers during proxying
+	// +optional
+	RequestHeadersPolicy *projcontour.HeadersPolicy `json:"requestHeadersPolicy,omitempty"`
+	// The policy for managing response headers during proxying
+	// +optional
+	ResponseHeadersPolicy *projcontour.HeadersPolicy `json:"responseHeadersPolicy,omitempty"`
 }
 
 // TimeoutPolicy define the attributes associated with timeout
@@ -126,6 +145,8 @@ type Service struct {
 	// UpstreamValidation defines how to verify the backend service's certificate
 	// +optional
 	UpstreamValidation *projcontour.UpstreamValidation `json:"validation,omitempty"`
+
+	IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 }
 
 // HealthCheck defines health checks on the upstream service.

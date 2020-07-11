@@ -185,6 +185,7 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 				AccessLogType:          ctx.AccessLogFormat,
 				AccessLogFields:        ctx.AccessLogFields,
 				MinimumProtocolVersion: annotation.MinProtoVersion(ctx.TLSConfig.MinimumProtocolVersion),
+				DefaultCertificate:     defaultCertificate(),
 				RequestTimeout:         ctx.RequestTimeout,
 			},
 			ListenerCache: contour.NewListenerCache(ctx.statsAddr, ctx.statsPort),
@@ -315,6 +316,10 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	// step 11. register leadership election.
 	eventHandler.IsLeader = setupLeadershipElection(&g, log, ctx, clients, eventHandler.UpdateNow)
+
+	// step 11.5. synchronous cache init (Adobe)
+	err = initCache(clients, eventHandler, et)
+	check(err)
 
 	sh := k8s.StatusUpdateHandler{
 		Log:           log.WithField("context", "StatusUpdateWriter"),

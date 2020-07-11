@@ -14,12 +14,14 @@
 package contour
 
 import (
-	"path"
+	"os"
 	"sort"
+	"strconv"
 	"sync"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoy_type "github.com/envoyproxy/go-control-plane/envoy/type"
 	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v2"
 	"github.com/golang/protobuf/proto"
 	"github.com/projectcontour/contour/internal/dag"
@@ -100,6 +102,9 @@ func visitRoutes(root dag.Vertex) map[string]*v2.RouteConfiguration {
 	rv := routeVisitor{
 		routes: map[string]*v2.RouteConfiguration{
 			ENVOY_HTTP_LISTENER: envoy.RouteConfiguration(ENVOY_HTTP_LISTENER),
+			// Adobe - no sni bindings
+			// undo https://github.com/projectcontour/contour/pull/2381
+			// ENVOY_HTTPS_LISTENER: envoy.RouteConfiguration(ENVOY_HTTPS_LISTENER),
 		},
 	}
 
@@ -121,18 +126,21 @@ func (v *routeVisitor) onVirtualHost(vh *dag.VirtualHost) {
 			return
 		}
 
+		var rt *envoy_api_v2_route.Route
 		if route.HTTPSUpgrade {
 			// TODO(dfc) if we ensure the builder never returns a dag.Route connected
 			// to a SecureVirtualHost that requires upgrade, this logic can move to
 			// envoy.RouteRoute.
-			routes = append(routes, &envoy_api_v2_route.Route{
-				Match:  envoy.RouteMatch(route),
-				Action: envoy.UpgradeHTTPS(),
-			})
+			rt = &envoy_api_v2_route.Route{
+				Match:                envoy.RouteMatch(route),
+				Action:               envoy.UpgradeHTTPS(),
+				TypedPerFilterConfig: envoy.TypedPerFilterConfig(route),
+			}
 		} else {
-			rt := &envoy_api_v2_route.Route{
-				Match:  envoy.RouteMatch(route),
-				Action: envoy.RouteRoute(route),
+			rt = &envoy_api_v2_route.Route{
+				Match:                envoy.RouteMatch(route),
+				Action:               envoy.RouteRoute(route),
+				TypedPerFilterConfig: envoy.TypedPerFilterConfig(route),
 			}
 			if route.RequestHeadersPolicy != nil {
 				rt.RequestHeadersToAdd = envoy.HeaderValueList(route.RequestHeadersPolicy.Set, false)
@@ -142,8 +150,22 @@ func (v *routeVisitor) onVirtualHost(vh *dag.VirtualHost) {
 				rt.ResponseHeadersToAdd = envoy.HeaderValueList(route.ResponseHeadersPolicy.Set, false)
 				rt.ResponseHeadersToRemove = route.ResponseHeadersPolicy.Remove
 			}
-			routes = append(routes, rt)
 		}
+
+		if enabled, err := strconv.ParseBool(os.Getenv("TRACING_ENABLED")); enabled && err == nil && route.Tracing != nil {
+			rt.Tracing = &envoy_api_v2_route.Tracing{
+				ClientSampling: &envoy_type.FractionalPercent{
+					Numerator:   uint32(route.Tracing.ClientSampling),
+					Denominator: envoy_type.FractionalPercent_HUNDRED,
+				},
+				RandomSampling: &envoy_type.FractionalPercent{
+					Numerator:   uint32(route.Tracing.RandomSampling),
+					Denominator: envoy_type.FractionalPercent_HUNDRED,
+				},
+			}
+		}
+
+		routes = append(routes, rt)
 	})
 
 	if len(routes) > 0 {
@@ -164,8 +186,9 @@ func (v *routeVisitor) onSecureVirtualHost(svh *dag.SecureVirtualHost) {
 		}
 
 		rt := &envoy_api_v2_route.Route{
-			Match:  envoy.RouteMatch(route),
-			Action: envoy.RouteRoute(route),
+			Match:                envoy.RouteMatch(route),
+			Action:               envoy.RouteRoute(route),
+			TypedPerFilterConfig: envoy.TypedPerFilterConfig(route),
 		}
 		if route.RequestHeadersPolicy != nil {
 			rt.RequestHeadersToAdd = envoy.HeaderValueList(route.RequestHeadersPolicy.Set, false)
@@ -181,7 +204,10 @@ func (v *routeVisitor) onSecureVirtualHost(svh *dag.SecureVirtualHost) {
 	if len(routes) > 0 {
 		sortRoutes(routes)
 
-		name := path.Join("https", svh.VirtualHost.Name)
+		// Adobe - no sni bindings
+		// undo https://github.com/projectcontour/contour/pull/2381
+		// name := path.Join("https", svh.VirtualHost.Name)
+		name := ENVOY_HTTPS_LISTENER
 
 		if _, ok := v.routes[name]; !ok {
 			v.routes[name] = envoy.RouteConfiguration(name)

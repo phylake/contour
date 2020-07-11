@@ -17,6 +17,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/projectcontour/contour/adobe"
 	"github.com/projectcontour/contour/internal/k8s"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -1420,6 +1421,9 @@ func TestListenerVisit(t *testing.T) {
 	}
 
 	for name, tc := range tests {
+		if adobe.ShouldSkipTest(name) {
+			t.SkipNow()
+		}
 		t.Run(name, func(t *testing.T) {
 			root := buildDAGFallback(t, tc.fallbackCertificate, tc.objs...)
 			got := visitListeners(root, &tc.ListenerVisitorConfig)

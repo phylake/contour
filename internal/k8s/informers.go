@@ -14,8 +14,6 @@
 package k8s
 
 import (
-	projectcontour "github.com/projectcontour/contour/apis/projectcontour/v1"
-
 	ingressroutev1 "github.com/projectcontour/contour/apis/contour/v1beta1"
 	"k8s.io/api/networking/v1beta1"
 
@@ -41,8 +39,9 @@ func DefaultInformerSet(inffactory dynamicinformer.DynamicSharedInformerFactory,
 	defaultGVRs := []schema.GroupVersionResource{
 		ingressroutev1.IngressRouteGVR,
 		ingressroutev1.TLSCertificateDelegationGVR,
-		projectcontour.HTTPProxyGVR,
-		projectcontour.TLSCertificateDelegationGVR,
+		// Adobe - disable 1.0 CRDs
+		// projectcontour.HTTPProxyGVR,
+		// projectcontour.TLSCertificateDelegationGVR,
 		corev1.SchemeGroupVersion.WithResource("services"),
 		v1beta1.SchemeGroupVersion.WithResource("ingresses"),
 	}

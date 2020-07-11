@@ -27,6 +27,8 @@ import (
 )
 
 func TestFallbackCertificate(t *testing.T) {
+	// Adobe - we have our own for now - skip test
+	t.SkipNow()
 	rh, c, done := setupWithFallbackCert(t, "fallbacksecret", "admin")
 	defer done()
 
