@@ -943,7 +943,8 @@ func determineSNI(routeRequestHeaders *HeadersPolicy, clusterRequestHeaders *Hea
 func escapeHeaderValue(value string) string {
 	// Envoy supports %-encoded variables, so literal %'s in the header's value must be escaped.  See:
 	// https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers
-	return strings.Replace(value, "%", "%%", -1)
+	ret := strings.Replace(value, "%", "%%", -1)
+	return strings.Replace(ret, "__percent__", "%", -1)
 }
 
 func includeConditionsIdentical(includes []projcontour.Include) bool {

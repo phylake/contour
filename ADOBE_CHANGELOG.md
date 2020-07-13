@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## _unreleased_
+
+- allow dynamic values in custom request/response headers
+
 ## v1.5.1-2.11.1-adobe
 
 - built from contour v1.5.1
