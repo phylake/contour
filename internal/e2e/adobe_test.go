@@ -1712,6 +1712,7 @@ func TestAdobeListenerFilterChainGroupingTCPProxyStopsIt(t *testing.T) {
 // re-allow root to root delegation
 // disable TLS 1.1
 // allow wildcard fqdn
+// allow dynamic request/response headers
 
 // Test the whole scenario: delegation created in a separate ns with a different secret
 func TestAdobeListenerRootToRootDelegation(t *testing.T) {
@@ -1976,6 +1977,111 @@ func TestAdobeListenerWildcardFqdn(t *testing.T) {
 		TypeUrl:     listenerType,
 		Nonce:       "1",
 	}, streamLDS(t, cc))
+}
+
+func TestAdobeRouteDynamicCustomHeader(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8081),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &ingressroutev1.VirtualHost{
+				Fqdn: "dynamic-header.hello.world.com",
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				RequestHeadersPolicy: &projcontour.HeadersPolicy{
+					Set: []projcontour.HeaderValue{
+						{
+							Name:  "x-forwarded-tls-cipher",
+							Value: "__percent__DOWNSTREAM_TLS_CIPHER__percent__",
+						},
+					},
+				},
+				ResponseHeadersPolicy: &projcontour.HeadersPolicy{
+					Set: []projcontour.HeaderValue{
+						{
+							Name:  "x-envoy-upstream-remote-address",
+							Value: "__percent__UPSTREAM_REMOTE_ADDRESS__percent__",
+						},
+					},
+				},
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+			}},
+		},
+	})
+
+	protos := []proto.Message{
+		&v2.RouteConfiguration{
+			Name: "ingress_http",
+			VirtualHosts: []*envoy_api_v2_route.VirtualHost{
+				{
+					Name: "dynamic-header.hello.world.com",
+					Domains: []string{
+						"dynamic-header.hello.world.com",
+						"dynamic-header.hello.world.com:*",
+					},
+					Routes: []*envoy_api_v2_route.Route{
+						{
+							Match:  routePrefix("/"),
+							Action: routecluster("ns/ws/80/da39a3ee5e"),
+							RequestHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "X-Forwarded-Tls-Cipher",
+										Value: "%DOWNSTREAM_TLS_CIPHER%",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+							},
+							ResponseHeadersToAdd: []*envoy_api_v2_core.HeaderValueOption{
+								{
+									Header: &envoy_api_v2_core.HeaderValue{
+										Key:   "X-Envoy-Upstream-Remote-Address",
+										Value: "%UPSTREAM_REMOTE_ADDRESS%",
+									},
+									Append: &wrappers.BoolValue{
+										Value: false,
+									},
+								},
+							},
+						},
+					},
+					RetryPolicy: adobe.RetryPolicy,
+				},
+			},
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     routeType,
+		Nonce:       "1",
+	}, streamRDS(t, cc))
 }
 
 // == internal/envoy/cluster.go
