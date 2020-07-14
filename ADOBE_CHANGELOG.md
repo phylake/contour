@@ -16,9 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
-## _unreleased_
+## v1.5.1-2.12.0-adobe
 
 - allow dynamic values in custom request/response headers
+- upgrade go to 1.14.5
 
 ## v1.5.1-2.11.1-adobe
 
