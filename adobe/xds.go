@@ -78,9 +78,12 @@ var (
 // This is re-used in the e2e tests
 var (
 	RetryPolicy = &envoy_api_v2_route.RetryPolicy{
-		RetryOn:                       "connect-failure",
+		RetryOn:                       "reset",
 		NumRetries:                    protobuf.UInt32(3),
 		HostSelectionRetryMaxAttempts: 3,
+		RetryHostPredicate: []*envoy_api_v2_route.RetryPolicy_RetryHostPredicate{{
+			Name: "envoy.retry_host_predicates.previous_hosts",
+		}},
 	}
 )
 
