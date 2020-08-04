@@ -10,8 +10,10 @@ import (
 	envoy_type "github.com/envoyproxy/go-control-plane/envoy/type"
 )
 
+// While 0 is a valid percent, Envoy ignores it which means the object is present.
+// On the objects this function gates the default of 100 then takes effect
 func validPercent(f float64) bool {
-	return f >= 0 && f <= 100
+	return f > 0 && f <= 100
 }
 
 func tracing() (config *http.HttpConnectionManager_Tracing) {

@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.5.1-2.12.1-adobe
+
+- indirectly fix Envoy issue with percent value of 0
+
 ## v1.5.1-2.12.0-adobe
 
 - allow dynamic values in custom request/response headers
