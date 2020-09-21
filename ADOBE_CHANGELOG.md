@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.5.1-2.13.0-adobe
+
+- remove restriction on wildcard fqdn
+- upgrade go to 1.14.9
+
 ## v1.5.1-2.12.1-adobe
 
 - indirectly fix Envoy issue with percent value of 0
