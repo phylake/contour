@@ -12,25 +12,6 @@ import (
 	"github.com/projectcontour/contour/internal/protobuf"
 )
 
-func PerFilterConfig(r *dag.Route) (conf map[string]*_struct.Struct) {
-	if r.PerFilterConfig == nil {
-		return
-	}
-
-	conf = make(map[string]*_struct.Struct)
-	var inInterface map[string]interface{}
-	inrec, _ := json.Marshal(r.PerFilterConfig)
-	json.Unmarshal(inrec, &inInterface)
-
-	for k, v := range inInterface {
-		s := new(_struct.Struct)
-		conf[k] = s
-
-		recurseIface(s, v)
-	}
-	return
-}
-
 func TypedPerFilterConfig(r *dag.Route) (conf map[string]*any.Any) {
 	if r.PerFilterConfig == nil {
 		return
@@ -38,7 +19,10 @@ func TypedPerFilterConfig(r *dag.Route) (conf map[string]*any.Any) {
 
 	conf = make(map[string]*any.Any)
 	var inInterface map[string]interface{}
-	inrec, _ := json.Marshal(r.PerFilterConfig)
+	inrec, err := json.Marshal(r.PerFilterConfig)
+	if err != nil {
+		return
+	}
 	json.Unmarshal(inrec, &inInterface)
 
 	for k, v := range inInterface {
