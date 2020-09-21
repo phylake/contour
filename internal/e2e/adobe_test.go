@@ -1711,7 +1711,7 @@ func TestAdobeListenerFilterChainGroupingTCPProxyStopsIt(t *testing.T) {
 // == internal/dag/builder.go
 // re-allow root to root delegation
 // disable TLS 1.1
-// allow wildcard fqdn
+// allow wildcard fqdn (incl. '*')
 // allow dynamic request/response headers
 
 // Test the whole scenario: delegation created in a separate ns with a different secret
@@ -1968,6 +1968,80 @@ func TestAdobeListenerWildcardFqdn(t *testing.T) {
 				envoy.TLSInspector(),
 			),
 			FilterChains: filterchaintls("*.hello.world.com", secret, envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0), "h2", "http/1.1"),
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     listenerType,
+		Nonce:       "1",
+	}, streamLDS(t, cc))
+}
+
+func TestAdobeListenerStarFqdn(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret",
+			Namespace: "ns",
+		},
+		Type: "kubernetes.io/tls",
+		Data: secretdata(CERTIFICATE, RSA_PRIVATE_KEY),
+	}
+	rh.OnAdd(secret)
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "ns",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8081),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "ns",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &ingressroutev1.VirtualHost{
+				Fqdn: "*",
+				TLS: &ingressroutev1.TLS{
+					SecretName: "secret",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+			}},
+		},
+	})
+
+	protos := []proto.Message{
+		&v2.Listener{
+			Name:         "ingress_http",
+			Address:      envoy.SocketAddress("0.0.0.0", 8080),
+			FilterChains: envoy.FilterChains(envoy.HTTPConnectionManager("ingress_http", envoy.FileAccessLogEnvoy("/dev/stdout"), 0)),
+		},
+		&v2.Listener{
+			Name:    "ingress_https",
+			Address: envoy.SocketAddress("0.0.0.0", 8443),
+			ListenerFilters: envoy.ListenerFilters(
+				envoy.TLSInspector(),
+			),
+			FilterChains: filterchaintls("*", secret, envoy.HTTPConnectionManager("ingress_https", envoy.FileAccessLogEnvoy("/dev/stdout"), 0), "h2", "http/1.1"),
 		},
 	}
 
