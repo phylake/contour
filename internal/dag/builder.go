@@ -1081,6 +1081,7 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				Websocket:       route.EnableWebsockets,
 				HTTPSUpgrade:    routeEnforceTLS(enforceTLS, permitInsecure),
 				PrefixRewrite:   route.PrefixRewrite,
+				TimeoutPolicy:   ingressrouteTimeoutPolicy(route.TimeoutPolicy),
 				RetryPolicy:     retryPolicy(route.RetryPolicy),
 				HashPolicy:      route.HashPolicy,
 				PerFilterConfig: route.PerFilterConfig,
