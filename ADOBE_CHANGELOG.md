@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## _next release_
+
+- restore `timeoutPolicy`
+
 ## v1.5.1-2.12.1-adobe
 
 - indirectly fix Envoy issue with percent value of 0
