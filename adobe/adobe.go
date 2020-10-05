@@ -38,9 +38,6 @@ var ignoreTests = map[string]struct{}{
 	"multiple tls ingress with secrets should be sorted":            {}, // we group the filter chains together
 	"multiple httpproxies with fallback certificate":                {}, // we group the filter chains together
 	"invalid FQDN contains wildcard":                                {}, // allow wildcard fqdn
-	"insert ingressroute w/ invalid timeoutpolicy":                  {}, // we ignore timeoutpolicy
-	"insert ingressroute w/ valid timeoutpolicy":                    {}, // we ignore timeoutpolicy
-	"insert ingressroute w/ infinite timeoutpolicy":                 {}, // we ignore timeoutpolicy
 }
 
 func IgnoreFields() []cmp.Option {

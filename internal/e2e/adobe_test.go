@@ -44,7 +44,7 @@ import (
 // == Route
 // HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
 // PerFilterConfig *PerFilterConfig `json:"perFilterConfig,omitempty"`
-// TimeoutPolicy is ignored
+// TimeoutPolicy doesn't override Timeout
 // Timeout *Duration `json:"timeout,omitempty"`
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
 // Tracing *Tracing `json:"tracing,omitempty"`
@@ -501,18 +501,27 @@ func TestAdobeRouteTimeoutPolicy(t *testing.T) {
 					Name: "ws",
 					Port: 80,
 				}},
+				Timeout: &ingressroutev1.Duration{
+					duration.Duration{
+						Seconds: int64(11),
+						Nanos:   int32(0),
+					},
+				},
 				TimeoutPolicy: &ingressroutev1.TimeoutPolicy{
-					Request: "10s",
+					Request: "12s",
 				},
 			}},
 		},
 	})
 
+	r := routecluster("default/ws/80/da39a3ee5e")
+	r.Route.Timeout = protobuf.Duration(11 * time.Second) // Timeout overrides TimeoutPolicy
+
 	assertRDS(t, cc, "1", virtualhosts(
 		envoy.VirtualHost("route-timeoutpolicy.hello.world",
 			&envoy_api_v2_route.Route{
 				Match:  routePrefix("/"),
-				Action: routecluster("default/ws/80/da39a3ee5e"),
+				Action: r,
 			},
 		),
 	), nil)
