@@ -19,6 +19,8 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 ## _next release_
 
 - restore `timeoutPolicy`
+- remove restriction on wildcard fqdn
+- upgrade go to 1.14.9
 
 ## v1.5.1-2.12.1-adobe
 
