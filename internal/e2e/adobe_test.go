@@ -50,6 +50,7 @@ import (
 // Tracing *Tracing `json:"tracing,omitempty"`
 // RequestHeadersPolicy *HeadersPolicy `json:"requestHeadersPolicy,omitempty"`
 // ResponseHeadersPolicy *HeadersPolicy `json:"responseHeadersPolicy,omitempty"`
+// HeaderMatch []projcontour.HeaderCondition `json:"headerMatch,omitempty"`
 //
 // == Service
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
@@ -747,6 +748,103 @@ func TestAdobeRouteServiceTimeout(t *testing.T) {
 		TypeUrl:     clusterType,
 		Nonce:       "1",
 	}, streamCDS(t, cc))
+}
+
+func TestAdobeRouteHeaderMatch(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws1",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws2",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       81,
+				TargetPort: intstr.FromInt(8081),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &ingressroutev1.VirtualHost{Fqdn: "route-headermatch.hello.world"},
+			Routes: []ingressroutev1.Route{
+				{
+					Match: "/",
+					HeaderMatch: []projcontour.HeaderCondition{{
+						Name:  "my-header",
+						Exact: "foo",
+					}},
+					Services: []ingressroutev1.Service{{
+						Name: "ws1",
+						Port: 80,
+					}},
+				},
+				{
+					Match: "/",
+					HeaderMatch: []projcontour.HeaderCondition{{
+						Name:  "my-header",
+						Exact: "bar",
+					}},
+					Services: []ingressroutev1.Service{{
+						Name: "ws2",
+						Port: 81,
+					}},
+				},
+			},
+		},
+	})
+
+	r1 := &envoy_api_v2_route.Route{
+		Match: &envoy_api_v2_route.RouteMatch{
+			PathSpecifier: &envoy_api_v2_route.RouteMatch_Prefix{
+				Prefix: "/",
+			},
+			Headers: []*envoy_api_v2_route.HeaderMatcher{{
+				Name:                 "my-header",
+				HeaderMatchSpecifier: &envoy_api_v2_route.HeaderMatcher_ExactMatch{ExactMatch: "foo"},
+			}},
+		},
+		Action: routecluster("default/ws1/80/da39a3ee5e"),
+	}
+
+	r2 := &envoy_api_v2_route.Route{
+		Match: &envoy_api_v2_route.RouteMatch{
+			PathSpecifier: &envoy_api_v2_route.RouteMatch_Prefix{
+				Prefix: "/",
+			},
+			Headers: []*envoy_api_v2_route.HeaderMatcher{{
+				Name:                 "my-header",
+				HeaderMatchSpecifier: &envoy_api_v2_route.HeaderMatcher_ExactMatch{ExactMatch: "bar"},
+			}},
+		},
+		Action: routecluster("default/ws2/81/da39a3ee5e"),
+	}
+
+	assertRDS(t, cc, "1", virtualhosts(
+		envoy.VirtualHost("route-headermatch.hello.world", r2, r1), // matches are ordered
+	), nil)
 }
 
 func TestAdobeTLSMaximumProtocolVersion(t *testing.T) {

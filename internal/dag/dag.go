@@ -81,7 +81,9 @@ type HeaderCondition struct {
 }
 
 func (hc *HeaderCondition) String() string {
-	return "header: " + hc.Name
+	// return "header: " + hc.Name
+	// Adobe - allow routing based on different header values
+	return "header: " + hc.Name + "=" + hc.Value + "|" + hc.MatchType
 }
 
 // Route defines the properties of a route to a Cluster.
