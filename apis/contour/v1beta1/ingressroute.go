@@ -105,6 +105,8 @@ type Route struct {
 	// The policy for managing response headers during proxying
 	// +optional
 	ResponseHeadersPolicy *projcontour.HeadersPolicy `json:"responseHeadersPolicy,omitempty"`
+
+	HeaderMatch []projcontour.HeaderCondition `json:"headerMatch,omitempty"`
 }
 
 // TimeoutPolicy define the attributes associated with timeout
