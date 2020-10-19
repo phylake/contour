@@ -19,6 +19,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 ## _next release_
 
 - add support for header-based routing
+- upgrade go to 1.14.10
 
 ## v1.5.1-2.13.0-adobe
 
