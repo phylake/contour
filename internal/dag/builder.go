@@ -1138,6 +1138,21 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				}
 			}
 
+			if len(route.HeaderMatch) > 0 {
+				// wrap them in a []projcontour.Condition so we can leverage upstream code
+				conds := make([]projcontour.Condition, 0, len(route.HeaderMatch))
+				for _, hm := range route.HeaderMatch {
+					conds = append(conds, projcontour.Condition{
+						Header: &hm,
+					})
+				}
+				if !headerConditionsAreValid(conds) {
+					sw.SetInvalid("cannot specify duplicate header 'exact match' conditions in the same route")
+					return
+				}
+				r.HeaderConditions = mergeHeaderConditions(conds)
+			}
+
 			for _, service := range route.Services {
 				if service.Port < 1 || service.Port > 65535 {
 					sw.SetInvalid("route %q: service %q: port must be in the range 1-65535", route.Match, service.Name)
