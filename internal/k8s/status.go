@@ -132,7 +132,7 @@ func (irs *StatusWriter) SetStatus(status, desc string, existing interface{}) er
 				CurrentStatus: status,
 				Description:   desc,
 			}
-			return irs.setIngressRouteStatus(exist, updated)
+			return irs.setIngressRouteStatusAdobe(updated)
 		}
 	case *projcontour.HTTPProxy:
 		// Check if update needed by comparing status & desc
