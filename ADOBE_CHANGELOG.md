@@ -16,6 +16,12 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.5.1-2.15.0-adobe
+
+- setStatus now uses the Status subresource
+- add response code details to envoy access logs
+- upgrade go to 1.14.12
+
 ## v1.5.1-2.14.0-adobe
 
 - add support for header-based routing
