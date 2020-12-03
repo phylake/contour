@@ -18,6 +18,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 ## v1.5.1-2.15.0-adobe
 
+- fixed issue when using multiple headers for header-based routing
 - setStatus now uses the Status subresource
 - add response code details to envoy access logs
 - upgrade go to 1.14.12
