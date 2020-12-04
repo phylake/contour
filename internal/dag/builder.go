@@ -1142,8 +1142,9 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				// wrap them in a []projcontour.Condition so we can leverage upstream code
 				conds := make([]projcontour.Condition, 0, len(route.HeaderMatch))
 				for _, hm := range route.HeaderMatch {
+					hm2 := hm
 					conds = append(conds, projcontour.Condition{
-						Header: &hm,
+						Header: &hm2,
 					})
 				}
 				if !headerConditionsAreValid(conds) {
