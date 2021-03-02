@@ -1058,6 +1058,13 @@ func (b *Builder) rootAllowed(namespace string) bool {
 func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev1.IngressRoute, prefixMatch string, visited []*ingressroutev1.IngressRoute, host string, enforceTLS bool) {
 	visited = append(visited, ir)
 
+	if vhosts := annotation.ExtraVHosts(ir); vhosts != nil {
+		b.lookupVirtualHost(host).HostNames = vhosts
+		if enforceTLS {
+			b.lookupSecureVirtualHost(host).HostNames = vhosts
+		}
+	}
+
 	for _, route := range ir.Spec.Routes {
 		// route cannot both delegate and point to services
 		if len(route.Services) > 0 && route.Delegate != nil {

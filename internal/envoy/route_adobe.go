@@ -206,3 +206,12 @@ func adobeIdleTimeout(r *dag.Route) *duration.Duration {
 	}
 	return idleTimeout(r)
 }
+
+// Same as VirtualHost but configures extra domains to match on
+func AdobeVirtualHost(hostname string, vhosts []string, routes ...*envoy_api_v2_route.Route) *envoy_api_v2_route.VirtualHost {
+	vh := VirtualHost(hostname, routes...)
+	if vhosts != nil {
+		vh.Domains = append(vh.Domains, vhosts...)
+	}
+	return vh
+}

@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+_next release_
+
+- add support for routing on custom host header
+
 ## v1.5.1-2.15.0-adobe
 
 - fixed issue when using multiple headers for header-based routing

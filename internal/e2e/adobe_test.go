@@ -57,6 +57,9 @@ import (
 //
 // == TLS
 // MaximumProtocolVersion string `json:"maximumProtocolVersion,omitempty"`
+//
+// == Annotations
+// Support 'adobeplatform.adobe.io/hosts: foo.bar.adobe.com'
 
 func TestAdobeRouteHashPolicy(t *testing.T) {
 	rh, cc, done := setup(t)
@@ -933,6 +936,99 @@ func TestAdobeTLSMaximumProtocolVersion(t *testing.T) {
 		TypeUrl:     listenerType,
 		Nonce:       "1",
 	}, streamLDS(t, cc))
+}
+
+func TestAdobeAnnotationHosts(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	// should work for both HTTP and HTTPS
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret",
+			Namespace: "default",
+		},
+		Type: "kubernetes.io/tls",
+		Data: secretdata(CERTIFICATE, RSA_PRIVATE_KEY),
+	}
+	rh.OnAdd(secret)
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+			Annotations: map[string]string{
+				"adobeplatform.adobe.io/hosts": "foo.bar.adobe.com",
+			},
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &ingressroutev1.VirtualHost{
+				Fqdn: "annotation-host.hello.world",
+				TLS: &ingressroutev1.TLS{
+					SecretName: "secret",
+				},
+			},
+			Routes: []ingressroutev1.Route{{
+				Match:          "/",
+				PermitInsecure: true,
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+			}},
+		},
+	})
+
+	r := routecluster("default/ws/80/da39a3ee5e")
+	vhosts := []*envoy_api_v2_route.VirtualHost{
+		{
+			Name: "annotation-host.hello.world",
+			Domains: []string{
+				"annotation-host.hello.world",
+				"annotation-host.hello.world:*",
+				"foo.bar.adobe.com",
+			},
+			Routes: []*envoy_api_v2_route.Route{
+				{
+					Match:  routePrefix("/"),
+					Action: r,
+				},
+			},
+			RetryPolicy: adobe.RetryPolicy,
+		},
+	}
+
+	protos := []proto.Message{
+		&v2.RouteConfiguration{
+			Name:         "ingress_http",
+			VirtualHosts: vhosts,
+		},
+		&v2.RouteConfiguration{
+			Name:         "ingress_https",
+			VirtualHosts: vhosts,
+		},
+	}
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: adobe.Hash(protos),
+		Resources:   resources(t, protos...),
+		TypeUrl:     routeType,
+		Nonce:       "1",
+	}, streamRDS(t, cc))
 }
 
 // == internal/envoy/route.go
