@@ -25,5 +25,5 @@ func ExtraVHosts(ir *ingressroutev1.IngressRoute) (vhosts []string) {
 	if annot := ir.Annotations["adobeplatform.adobe.io/hosts"]; annot != "" {
 		vhosts = strings.Split(annot, ",")
 	}
-	return vhosts
+	return
 }
