@@ -209,6 +209,9 @@ func (b *Builder) validIngressRoutes() []*ingressroutev1.IngressRoute {
 		fqdnIngressroutes[ir.Spec.VirtualHost.Fqdn] = append(fqdnIngressroutes[ir.Spec.VirtualHost.Fqdn], ir)
 	}
 
+	// track the ones that already had their status updated so we avoid racing issue
+	var updated = make(map[*ingressroutev1.IngressRoute]struct{})
+
 	for fqdn, irs := range fqdnIngressroutes {
 		switch len(irs) {
 		case 1:
@@ -217,6 +220,7 @@ func (b *Builder) validIngressRoutes() []*ingressroutev1.IngressRoute {
 			// multiple irs use the same fqdn. mark them as invalid.
 			var conflicting []string
 			for _, ir := range irs {
+				updated[ir] = struct{}{}
 				conflicting = append(conflicting, ir.Namespace+"/"+ir.Name)
 			}
 			sort.Strings(conflicting) // sort for test stability
@@ -228,7 +232,56 @@ func (b *Builder) validIngressRoutes() []*ingressroutev1.IngressRoute {
 			}
 		}
 	}
-	return valid
+
+	// now same thing but for the extra vhost header
+	var valid2 []*ingressroutev1.IngressRoute
+	hostIngressroutes := make(map[string][]*ingressroutev1.IngressRoute)
+	for _, ir := range valid {
+		if vhosts := annotation.ExtraVHosts(ir); vhosts != nil {
+			for _, vh := range vhosts {
+				hostIngressroutes[vh] = append(hostIngressroutes[vh], ir)
+			}
+			continue
+		}
+		valid2 = append(valid2, ir)
+	}
+
+	// first pass: find the invalid ones
+	var invalid = make(map[*ingressroutev1.IngressRoute]struct{})
+	for _, irs := range hostIngressroutes {
+		if len(irs) > 1 {
+			for _, ir := range irs {
+				invalid[ir] = struct{}{}
+			}
+		}
+	}
+
+	for vh, irs := range hostIngressroutes {
+		switch len(irs) {
+		case 1:
+			if _, ok := invalid[irs[0]]; !ok {
+				valid2 = append(valid2, irs[0])
+			}
+		default:
+			// multiple irs use the same host. mark them as invalid.
+			var conflicting []string
+			for _, ir := range irs {
+				if _, ok := updated[ir]; !ok {
+					conflicting = append(conflicting, ir.Namespace+"/"+ir.Name)
+				}
+				updated[ir] = struct{}{}
+			}
+			sort.Strings(conflicting) // sort for test stability
+			msg := fmt.Sprintf("host annotation %q is used in multiple IngressRoutes: %s", vh, strings.Join(conflicting, ", "))
+			for _, ir := range irs {
+				sw, commit := b.WithObject(ir)
+				sw.WithValue("vhost", vh).SetInvalid(msg)
+				commit()
+			}
+		}
+	}
+
+	return valid2
 }
 
 // validHTTPProxies returns a slice of *projcontour.HTTPProxy objects.
