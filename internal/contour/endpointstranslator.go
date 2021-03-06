@@ -14,6 +14,7 @@
 package contour
 
 import (
+	"net"
 	"sort"
 	"strings"
 	"sync"
@@ -149,7 +150,22 @@ func (e *EndpointsTranslator) recomputeClusterLoadAssignment(oldep, newep *v1.En
 			}
 
 			addresses := append([]v1.EndpointAddress{}, s.Addresses...) // shallow copy
-			sort.Slice(addresses, func(i, j int) bool { return addresses[i].IP < addresses[j].IP })
+			sort.SliceStable(addresses, func(a, b int) bool {
+				aIP := net.ParseIP(addresses[a].IP).To4()
+				bIP := net.ParseIP(addresses[b].IP).To4()
+				if len(aIP) != 4 || len(bIP) != 4 {
+					return false
+				}
+
+				// reverse the octets so IPs of the same subnet are not collocated
+				//
+				// this is important so host retries don't land on the same node when
+				// lb_policy is ROUND_ROBIN
+				aInt := uint32(aIP[0]) | uint32(aIP[1])<<8 | uint32(aIP[2])<<16 | uint32(aIP[3])<<24
+				bInt := uint32(bIP[0]) | uint32(bIP[1])<<8 | uint32(bIP[2])<<16 | uint32(bIP[3])<<24
+
+				return aInt < bInt
+			})
 
 			lbendpoints := make([]*envoy_api_v2_endpoint.LbEndpoint, 0, len(addresses))
 			for _, a := range addresses {
