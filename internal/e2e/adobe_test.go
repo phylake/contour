@@ -2797,6 +2797,7 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 									NormalizePath:    protobuf.Bool(true),
 									RequestTimeout:   protobuf.Duration(0),
 									MergeSlashes:     true,
+									ServerName:       "adobe",
 									Tracing: &http.HttpConnectionManager_Tracing{
 										OperationName:   http.HttpConnectionManager_Tracing_EGRESS,
 										ClientSampling:  &envoy_type.Percent{Value: 25},
