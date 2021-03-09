@@ -16,7 +16,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
-_next release_
+## v1.5.1-2.16.0-adobe
 
 - add support for routing on custom host header
 - sort endpoints such that IPs in the same subnet are not collocated
