@@ -237,6 +237,9 @@ type VirtualHost struct {
 	Name string
 
 	routes map[string]*Route
+
+	// Additional Host names the vhost should match on for routing
+	HostNames []string
 }
 
 func (v *VirtualHost) addRoute(route *Route) {
