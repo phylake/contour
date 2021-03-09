@@ -18,6 +18,7 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 _next release_
 
+- add support for routing on custom host header
 - sort endpoints such that IPs in the same subnet are not collocated
 - upgrade go to 1.14.15
 

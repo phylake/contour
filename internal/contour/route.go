@@ -172,7 +172,7 @@ func (v *routeVisitor) onVirtualHost(vh *dag.VirtualHost) {
 		sortRoutes(routes)
 
 		v.routes[ENVOY_HTTP_LISTENER].VirtualHosts = append(v.routes[ENVOY_HTTP_LISTENER].VirtualHosts,
-			envoy.VirtualHost(vh.Name, routes...))
+			envoy.AdobeVirtualHost(vh.Name, vh.HostNames, routes...))
 	}
 }
 
@@ -214,7 +214,7 @@ func (v *routeVisitor) onSecureVirtualHost(svh *dag.SecureVirtualHost) {
 		}
 
 		v.routes[name].VirtualHosts = append(v.routes[name].VirtualHosts,
-			envoy.VirtualHost(svh.VirtualHost.Name, routes...))
+			envoy.AdobeVirtualHost(svh.VirtualHost.Name, svh.HostNames, routes...))
 
 		// A fallback route configuration contains routes for all the vhosts that have the fallback certificate enabled.
 		// When a request is received, the default TLS filterchain will accept the connection,
