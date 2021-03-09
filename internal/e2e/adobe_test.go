@@ -2893,6 +2893,7 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 									NormalizePath:    protobuf.Bool(true),
 									RequestTimeout:   protobuf.Duration(0),
 									MergeSlashes:     true,
+									ServerName:       "adobe",
 									Tracing: &http.HttpConnectionManager_Tracing{
 										OperationName:   http.HttpConnectionManager_Tracing_EGRESS,
 										ClientSampling:  &envoy_type.Percent{Value: 25},
@@ -3129,4 +3130,44 @@ func TestAdobeRoute(t *testing.T) {
 		TypeUrl:     routeType,
 		Nonce:       "1",
 	}, streamRDS(t, cc))
+}
+
+// == internal/contour/endpointstranslator.go
+// sort endpoints
+func TestAdobeSortEndpoints(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	e1 := endpoints(
+		"test_ns",
+		"test_cluster",
+		v1.EndpointSubset{
+			Addresses: addresses(
+				"172.16.195.1",
+				"172.16.195.2",
+				"172.16.196.1",
+				"172.16.196.2",
+			),
+			Ports: ports(
+				port("port", 3000),
+			),
+		},
+	)
+
+	rh.OnAdd(e1)
+
+	assert.Equal(t, &v2.DiscoveryResponse{
+		VersionInfo: "2",
+		Resources: resources(t,
+			envoy.ClusterLoadAssignment(
+				"test_ns/test_cluster/port",
+				envoy.SocketAddress("172.16.195.1", 3000),
+				envoy.SocketAddress("172.16.196.1", 3000),
+				envoy.SocketAddress("172.16.195.2", 3000),
+				envoy.SocketAddress("172.16.196.2", 3000),
+			),
+		),
+		TypeUrl: endpointType,
+		Nonce:   "2",
+	}, streamEDS(t, cc))
 }

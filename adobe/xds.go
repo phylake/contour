@@ -127,6 +127,7 @@ func AdobefyXDS(t *testing.T, resp *v2.DiscoveryResponse) {
 		// HttpConnectionManager:
 		//  * override RouteConfigName
 		//  * drop lua filter
+		//  * set server name
 		for _, l := range rec {
 			listener := l.(*v2.Listener)
 			for _, fc := range listener.GetFilterChains() {
@@ -156,6 +157,9 @@ func AdobefyXDS(t *testing.T, resp *v2.DiscoveryResponse) {
 							hcm.HttpFilters = append(hcm.HttpFilters[:luaFilterIndex], hcm.HttpFilters[luaFilterIndex+1:]...)
 							modified = true
 						}
+
+						// set server name
+						hcm.ServerName = "adobe"
 
 						// rewrite config
 						if modified {

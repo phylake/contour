@@ -174,6 +174,7 @@ func (b *httpConnectionManagerBuilder) Get() *envoy_api_v2_listener.Filter {
 		NormalizePath:    protobuf.Bool(true),
 		RequestTimeout:   protobuf.Duration(b.requestTimeout),
 		MergeSlashes:     true,
+		ServerName:       "adobe",
 		Tracing:          tracing(),
 	}
 

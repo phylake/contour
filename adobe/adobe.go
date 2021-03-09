@@ -23,6 +23,7 @@ var ignoreProperties = []cmp.Option{
 	cmpopts.IgnoreFields(envoy_api_v2_auth.TlsParameters{}, "TlsMaximumProtocolVersion"),
 	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck{}, "InitialJitter", "IntervalJitterPercent"),
 	cmpopts.IgnoreFields(envoy_api_v2_core.HealthCheck_HttpHealthCheck{}, "ExpectedStatuses"),
+	cmpopts.IgnoreFields(envoy_api_v2_core.SocketAddress{}, "Address"),
 	cmpopts.IgnoreFields(envoy_api_v2_listener.FilterChainMatch{}, "ServerNames"),
 	cmpopts.IgnoreFields(envoy_api_v2_route.RouteAction{}, "RetryPolicy", "HashPolicy"),
 	cmpopts.IgnoreFields(envoy_api_v2_route.VirtualHost{}, "RetryPolicy"),
