@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.5.1-2.16.1-adobe
+
+- cross validate custom host headers against fqdns
+
 ## v1.5.1-2.16.0-adobe
 
 - add support for routing on custom host header
