@@ -18,6 +18,7 @@ import (
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	envoy_api_v2_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	router "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	http "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_type "github.com/envoyproxy/go-control-plane/envoy/type"
 	"github.com/golang/protobuf/proto"
@@ -2668,6 +2669,7 @@ func TestAdobeClusterHealthcheck(t *testing.T) {
 // == internal/envoy/listener.go
 // add SocketOptions
 // HttpFilters updates:  remove gzip, grpc web, add ip_allow_deny, health_check_simple, headersize
+// HttpFilters changes:  router: set SuppressEnvoyHeaders
 // add GenerateRequestId:   protobuf.Bool(false),
 // add MaxRequestHeadersKb: protobuf.UInt32(64),
 // remove IdleTimeout
@@ -2883,6 +2885,11 @@ func TestAdobeListenerHttpConnectionManager(t *testing.T) {
 										},
 										{
 											Name: "envoy.router",
+											ConfigType: &http.HttpFilter_TypedConfig{
+												TypedConfig: protobuf.MustMarshalAny(&router.Router{
+													SuppressEnvoyHeaders: true,
+												}),
+											},
 										},
 									},
 									HttpProtocolOptions: &envoy_api_v2_core.Http1ProtocolOptions{

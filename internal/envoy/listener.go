@@ -25,6 +25,7 @@ import (
 	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	lua "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/lua/v2"
+	router "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	http "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	tcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -139,6 +140,11 @@ func (b *httpConnectionManagerBuilder) DefaultFilters() *httpConnectionManagerBu
 		},
 		&http.HttpFilter{
 			Name: wellknown.Router,
+			ConfigType: &http.HttpFilter_TypedConfig{
+				TypedConfig: protobuf.MustMarshalAny(&router.Router{
+					SuppressEnvoyHeaders: true,
+				}),
+			},
 		},
 	)
 
