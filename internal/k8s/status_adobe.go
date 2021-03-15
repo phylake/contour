@@ -17,7 +17,7 @@ func (irs *StatusWriter) setIngressRouteStatusAdobe(updated *ingressroutev1.Ingr
 		usLatest, err1 := irs.Client.Resource(ingressroutev1.IngressRouteGVR).Namespace(updated.Namespace).
 			Get(context.TODO(), updated.Name, metav1.GetOptions{})
 		if err1 != nil {
-			// error while retriving the current one - abort
+			// error while retrieving the current one - abort
 			return err
 		}
 		intLatest, err2 := irs.Converter.FromUnstructured(usLatest)
