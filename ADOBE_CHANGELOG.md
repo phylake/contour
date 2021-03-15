@@ -16,6 +16,11 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.5.1-2.17.0-adobe
+
+- suppress envoy headers
+- retry status update
+
 ## v1.5.1-2.16.1-adobe
 
 - cross validate custom host headers against fqdns
