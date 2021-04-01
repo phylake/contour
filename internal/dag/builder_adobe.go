@@ -32,7 +32,9 @@ func (b *Builder) validIngressRoutesAdobe() []*ingressroutev1.IngressRoute {
 	// list of all fqdns
 	fqdnIngressroutes := make(map[string][]*ingressroutev1.IngressRoute)
 	for _, ir := range valid {
-		fqdnIngressroutes[ir.Spec.VirtualHost.Fqdn] = append(fqdnIngressroutes[ir.Spec.VirtualHost.Fqdn], ir)
+		if ir.Spec.VirtualHost != nil {
+			fqdnIngressroutes[ir.Spec.VirtualHost.Fqdn] = append(fqdnIngressroutes[ir.Spec.VirtualHost.Fqdn], ir)
+		}
 	}
 
 	// find the invalid ones
