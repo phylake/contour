@@ -38,6 +38,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	coreinformers "k8s.io/client-go/informers"
 )
 
@@ -133,7 +134,11 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	// step 2. create informer factories
 	informerFactory := clients.NewInformerFactory()
-	secretInformerFactory := clients.NewInformerFactoryWithOptions()
+	secretInformerFactory := clients.NewInformerFactoryWithOptions(
+		coreinformers.WithTweakListOptions(func(options *metav1.ListOptions) {
+			options.FieldSelector = "type=" + string(v1.SecretTypeTLS)
+		}),
+	)
 	dynamicInformerFactory := clients.NewDynamicInformerFactory()
 
 	// Create a set of SharedInformerFactories for each root-ingressroute namespace (if defined)

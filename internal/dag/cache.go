@@ -103,12 +103,6 @@ func (kc *KubernetesCache) Insert(obj interface{}) bool {
 
 	switch obj := obj.(type) {
 	case *v1.Secret:
-		om := obj.GetObjectMeta()
-		kc.WithField("name", om.GetName()).
-			WithField("namespace", om.GetNamespace()).
-			WithField("kind", "Secret").
-			WithField("version", "v1").
-			Info("-- inserting secret --")
 		valid, err := isValidSecret(obj)
 		if !valid {
 			if err != nil {
