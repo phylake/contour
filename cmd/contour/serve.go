@@ -133,6 +133,7 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	// step 2. create informer factories
 	informerFactory := clients.NewInformerFactory()
+	secretInformerFactory := clients.NewInformerFactoryWithOptions()
 	dynamicInformerFactory := clients.NewDynamicInformerFactory()
 
 	// Create a set of SharedInformerFactories for each root-ingressroute namespace (if defined)
@@ -247,7 +248,7 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 
 	// If root-ingressroutes are not defined, then add the informer for all namespaces
 	if len(namespacedInformerFactories) == 0 {
-		informerSyncList.RegisterInformer(informerFactory.Core().V1().Secrets().Informer(), dynamicHandler)
+		informerSyncList.RegisterInformer(secretInformerFactory.Core().V1().Secrets().Informer(), dynamicHandler)
 	}
 
 	// step 5. endpoints updates are handled directly by the EndpointsTranslator
@@ -262,6 +263,7 @@ func doServe(log logrus.FieldLogger, ctx *serveContext) error {
 	var g workgroup.Group
 	g.Add(startInformer(dynamicInformerFactory, log.WithField("context", "contourinformers")))
 	g.Add(startInformer(informerFactory, log.WithField("context", "coreinformers")))
+	g.Add(startInformer(secretInformerFactory, log.WithField("context", "secretinformers")))
 
 	for ns, factory := range namespacedInformerFactories {
 		g.Add(startInformer(factory, log.WithField("context", "corenamespacedinformers").WithField("namespace", ns)))
