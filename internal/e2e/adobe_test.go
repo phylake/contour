@@ -2622,7 +2622,7 @@ func TestAdobeClusterLbPolicy(t *testing.T) {
 	}, streamCDS(t, cc))
 }
 
-// HealthyPanicThreshold=100
+// HealthyPanicThreshold=10
 func TestAdobeClusterHealthyPanicThreshold(t *testing.T) {
 	rh, cc, done := setup(t)
 	defer done()
@@ -2674,7 +2674,7 @@ func TestAdobeClusterHealthyPanicThreshold(t *testing.T) {
 		// HealthyPanicThreshold
 		CommonLbConfig: &v2.Cluster_CommonLbConfig{
 			HealthyPanicThreshold: &envoy_type.Percent{
-				Value: 100,
+				Value: 10,
 			},
 		},
 	}

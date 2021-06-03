@@ -279,7 +279,7 @@ func u32nil(val uint32) *wrappers.UInt32Value {
 func ClusterCommonLBConfig() *v2.Cluster_CommonLbConfig {
 	return &v2.Cluster_CommonLbConfig{
 		HealthyPanicThreshold: &envoy_type.Percent{ // Disable HealthyPanicThreshold
-			Value: 100,
+			Value: 10,
 		},
 	}
 }
