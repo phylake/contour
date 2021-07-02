@@ -52,6 +52,7 @@ import (
 // RequestHeadersPolicy *HeadersPolicy `json:"requestHeadersPolicy,omitempty"`
 // ResponseHeadersPolicy *HeadersPolicy `json:"responseHeadersPolicy,omitempty"`
 // HeaderMatch []projcontour.HeaderCondition `json:"headerMatch,omitempty"`
+// EnableSPDY bool `json:"enableSPDY,omitempty"`
 //
 // == Service
 // IdleTimeout *Duration `json:"idleTimeout,omitempty"`
@@ -848,6 +849,59 @@ func TestAdobeRouteHeaderMatch(t *testing.T) {
 
 	assertRDS(t, cc, "1", virtualhosts(
 		envoy.VirtualHost("route-headermatch.hello.world", r2, r1), // matches are ordered
+	), nil)
+}
+
+func TestAdobeRouteEnableSPDY(t *testing.T) {
+	rh, cc, done := setup(t)
+	defer done()
+
+	rh.OnAdd(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ws",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{{
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	})
+
+	rh.OnAdd(&ingressroutev1.IngressRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple",
+			Namespace: "default",
+		},
+		Spec: ingressroutev1.IngressRouteSpec{
+			VirtualHost: &ingressroutev1.VirtualHost{Fqdn: "route-spdy.hello.world"},
+			Routes: []ingressroutev1.Route{{
+				Match: "/",
+				Services: []ingressroutev1.Service{{
+					Name: "ws",
+					Port: 80,
+				}},
+				EnableSPDY: true,
+			}},
+		},
+	})
+
+	r := routecluster("default/ws/80/da39a3ee5e")
+	r.Route.UpgradeConfigs = []*envoy_api_v2_route.RouteAction_UpgradeConfig{
+		{
+			UpgradeType: "spdy/3.1",
+		},
+	}
+
+	assertRDS(t, cc, "1", virtualhosts(
+		envoy.VirtualHost("route-spdy.hello.world",
+			&envoy_api_v2_route.Route{
+				Match:  routePrefix("/"),
+				Action: r,
+			},
+		),
 	), nil)
 }
 

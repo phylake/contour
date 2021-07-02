@@ -107,6 +107,9 @@ type Route struct {
 	ResponseHeadersPolicy *projcontour.HeadersPolicy `json:"responseHeadersPolicy,omitempty"`
 
 	HeaderMatch []projcontour.HeaderCondition `json:"headerMatch,omitempty"`
+
+	// Enables SPDY protocol upgrade for the route
+	EnableSPDY bool `json:"enableSPDY,omitempty"`
 }
 
 // TimeoutPolicy define the attributes associated with timeout

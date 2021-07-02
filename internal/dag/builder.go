@@ -1089,6 +1089,7 @@ func (b *Builder) processIngressRoutes(sw *ObjectStatusWriter, ir *ingressroutev
 				RetryPolicy:     retryPolicy(route.RetryPolicy),
 				HashPolicy:      route.HashPolicy,
 				PerFilterConfig: route.PerFilterConfig,
+				SPDYUpgrade:     route.EnableSPDY,
 			}
 
 			if route.RequestHeadersPolicy != nil {

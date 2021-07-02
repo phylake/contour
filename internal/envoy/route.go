@@ -73,6 +73,14 @@ func RouteRoute(r *dag.Route) *envoy_api_v2_route.Route_Route {
 		}
 	}
 
+	if r.SPDYUpgrade {
+		ra.UpgradeConfigs = append(ra.UpgradeConfigs,
+			&envoy_api_v2_route.RouteAction_UpgradeConfig{
+				UpgradeType: "spdy/3.1",
+			},
+		)
+	}
+
 	if r.Websocket {
 		ra.UpgradeConfigs = append(ra.UpgradeConfigs,
 			&envoy_api_v2_route.RouteAction_UpgradeConfig{

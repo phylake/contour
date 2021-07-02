@@ -16,6 +16,10 @@ v{C major}.{C minor}.{C fix}-{A major}.{A minor}.{A fix}-adobe
 
 # Log
 
+## v1.5.1-2.19.0-adobe
+
+- add support SPDY protocol upgrade in IngressRoute
+
 ## v1.5.1-2.18.1-adobe
 
 - fix panic threshod
