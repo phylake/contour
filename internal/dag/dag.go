@@ -134,6 +134,8 @@ type Route struct {
 	IdleTimeout *duration.Duration
 
 	Tracing *ingressroutev1.Tracing
+
+	SPDYUpgrade bool
 }
 
 // HasPathPrefix returns whether this route has a PrefixPathCondition.
